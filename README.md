@@ -28,12 +28,10 @@ This project is a **digital scope system for a Nerf blaster**, designed using a 
 
 ## Installation
 ### **1️⃣ Install Dependencies**
-Run the following commands to install the required packages:
-```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3-picamera python3-opencv ffmpeg evdev smbus
+Run the following command to install the required packages:
 ```
-
+curl -sL https://raw.githubusercontent.com/matt-desmarais/P0W2/main/install.sh | bash -
+```
 ### **2️⃣ Clone the Repository**
 ```bash
 git clone https://github.com/matt-desmarais/P0W2.git
@@ -42,7 +40,7 @@ cd P0W2
 
 ### **3️⃣ Run the Digital Scope Software**
 ```bash
-python3 main.py
+python3 P0W2.py
 ```
 
 ## Usage
