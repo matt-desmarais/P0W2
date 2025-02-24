@@ -27,21 +27,33 @@ This project is a **digital scope system for a Nerf blaster**, designed using a 
   - Supports **gamepad input** for smooth interaction.  
 
 ## Installation
-### **1️⃣ Install Dependencies**
+## **1️⃣ Connecting a Pro Controller via Bluetooth
+
+To pair and connect a **Pro Controller**, follow these steps:
+
+```sh
+bluetoothctl
+# Turn on your gamepad by pressing the Start button
+# Hold the Select button until the LED blinks rapidly
+
+scan on
+# Find the 'Pro Controller' in the scan results and note its MAC address
+
+pair <MAC_ADDRESS>
+trust <MAC_ADDRESS>
+connect <MAC_ADDRESS>
+```
+
+Once connected, the controller should be ready to use!
+
+
+### **2️⃣ Install Dependencies**
 Run the following command to install the required packages:
 ```
 curl -sL https://raw.githubusercontent.com/matt-desmarais/P0W2/main/install.sh | bash -
 ```
-### **2️⃣ Clone the Repository**
-```bash
-git clone https://github.com/matt-desmarais/P0W2.git
-cd P0W2
-```
-
-### **3️⃣ Run the Digital Scope Software**
-```bash
-python3 P0W2.py
-```
+### **3️⃣ Reboot and turn on gamepad**
+Program should automatically start
 
 ## Usage
 This project uses the **8BitDo Zero 2 Bluetooth Gamepad** for control.
