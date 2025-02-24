@@ -43,4 +43,16 @@ echo "options g_mass_storage file=/piusb.bin stall=0 ro=0" | sudo tee -a /etc/mo
 echo "Installing raspi2png..."
 curl -sL https://raw.githubusercontent.com/AndrewFromMelbourne/raspi2png/master/installer.sh | bash -
 
+# Clone GitHub repository
+echo "Cloning repository..."
+git clone https://github.com/matt-desmarais/P0W2.git
+
+# Copy scope.service to systemd directory
+echo "Copying scope.service to systemd directory..."
+sudo cp P0W2/scope.service /etc/systemd/system/
+
+# Enable scope.service
+echo "Enabling scope.service..."
+sudo systemctl enable scope.service
+
 echo "Setup complete. Please Reboot"
