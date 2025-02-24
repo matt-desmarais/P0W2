@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Enable legacy camera and I2C via raspi-config
+echo "Configuring Raspberry Pi settings..."
+sudo raspi-config nonint do_legacy 0
+sudo raspi-config nonint do_i2c 0
+
 # Update package list and install necessary packages
 echo "Updating and installing required packages..."
 sudo apt update
