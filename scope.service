@@ -1,0 +1,13 @@
+[Unit]
+Description=Scope
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/P0W2/
+ExecStart=/usr/bin/python3 /home/pi/P0W2/P0W2.py
+Restart=always
+RestartSec=0
+
+[Install]
+WantedBy=multi-user.target
