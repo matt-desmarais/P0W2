@@ -1,4 +1,3 @@
-
 pi=3.14159265359*1;
 
 /* [Main Dimensions] */
@@ -390,14 +389,14 @@ module NATO_rail(n=-1, d=0, l=0, c=0, slots=1){
 
 /* [parts] */
 make_bottom=1;   // [0:No,1:Yes] 
-make_top=1;      // [0:No,1:Yes] 
+make_top=0;      // [0:No,1:Yes] 
 
 /* [connectors] */
-sdcard_hole = 1; // [0:No,1:Yes] 
+sdcard_hole = 0; // [0:No,1:Yes] 
 power_hole = 0;  // [0:No,1:Yes] 
 hdmi_hole = 1;   // [0:No,1:Yes] 
 usb_hole = 1;    // [0:No,1:Yes] 
-camera_hole = 1; // [0:No,1:Yes] 
+camera_hole = 0; // [0:No,1:Yes] 
 gpio_hole = 0;   // [0:No,1:Yes] 
 pins = 1;        // [0:No,1:Yes] 
 
@@ -455,9 +454,9 @@ pz_sdcard_width = 12;
 pz_sdcard_protrusion = 2.3; // sdcard present
 pz_sdcard_height = (2.8 - pz_pcb_thickness); 
 
-pz_camera_y_offset = 15;
+pz_camera_y_offset = 19;
 pz_camera_length = 4.43;
-pz_camera_width = 17;
+pz_camera_width = 22;
 pz_camera_protrusion = 1.1; // no cable present
 pz_camera_height = (2.65 - pz_pcb_thickness);
 
@@ -540,6 +539,7 @@ module pzw(gpio_header = true, gpio_solder = true) {
             cube([pz_sdcard_length, pz_sdcard_width, pz_sdcard_height]);
 
         // camera
+        
         translate([(pz_length - pz_camera_length + pz_camera_protrusion), 
                    (pz_camera_y_offset-(pz_camera_width/2)), 
                     pz_pcb_thickness])
@@ -585,11 +585,6 @@ module pzw(gpio_header = true, gpio_solder = true) {
             }
    }
 }
-////////////////////////////////////////
-//
-// End of pizero functions/modules
-//
-////////////////////////////
 
 case_inside_length = pz_max_length + 2*gap;
 case_inside_width = pz_max_width + 2*gap;
@@ -645,7 +640,7 @@ module shell(inside_length,
         rounded_box(inside_length, inside_width, case_outside_height+1, rounded_edge_radius);
         
         //NEW
-        if (sdcard_hole) {
+        if (true) {
             offset = 12.4 + gap; // magic number for centre line
             translate([-case_outside_length/8, offset, (standoffs+pz_pcb_thickness/2)])
 //                cube([case_outside_length/4, pz_sdcard_width+3, 4]);
@@ -653,7 +648,7 @@ module shell(inside_length,
         }
         
         // hole for camera
-        if (camera_hole) {
+        if (true) {
             offset = 12.4 + gap;
             translate([case_outside_length/1.25, offset, (standoffs+pz_pcb_thickness)])
                 //#cube([case_outside_length/4, pz_camera_width-2, 1.2]);
@@ -1001,6 +996,4 @@ translate([17,0,0]) {
 }
 }
 }
-
-
 }
