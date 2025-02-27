@@ -1,3 +1,4 @@
+
 pi=3.14159265359*1;
 
 /* [Main Dimensions] */
@@ -142,7 +143,6 @@ module rail_arc() {
 }
 */
 
-/*
 module rail_arc() {
     difference() {
         // Straight cutout replacing arc, matching rail width
@@ -151,7 +151,7 @@ module rail_arc() {
         }
     }
 }
-*/
+
 /*
 module rail_arc() {
    // difference() {
@@ -389,11 +389,11 @@ module NATO_rail(n=-1, d=0, l=0, c=0, slots=1){
 
 /* [parts] */
 make_bottom=1;   // [0:No,1:Yes] 
-make_top=0;      // [0:No,1:Yes] 
+make_top=1;      // [0:No,1:Yes] 
 
 /* [connectors] */
 sdcard_hole = 0; // [0:No,1:Yes] 
-power_hole = 0;  // [0:No,1:Yes] 
+power_hole = 1;  // [0:No,1:Yes] 
 hdmi_hole = 1;   // [0:No,1:Yes] 
 usb_hole = 1;    // [0:No,1:Yes] 
 camera_hole = 0; // [0:No,1:Yes] 
@@ -454,9 +454,9 @@ pz_sdcard_width = 12;
 pz_sdcard_protrusion = 2.3; // sdcard present
 pz_sdcard_height = (2.8 - pz_pcb_thickness); 
 
-pz_camera_y_offset = 19;
+pz_camera_y_offset = 15;
 pz_camera_length = 4.43;
-pz_camera_width = 22;
+pz_camera_width = 17;
 pz_camera_protrusion = 1.1; // no cable present
 pz_camera_height = (2.65 - pz_pcb_thickness);
 
@@ -539,7 +539,6 @@ module pzw(gpio_header = true, gpio_solder = true) {
             cube([pz_sdcard_length, pz_sdcard_width, pz_sdcard_height]);
 
         // camera
-        
         translate([(pz_length - pz_camera_length + pz_camera_protrusion), 
                    (pz_camera_y_offset-(pz_camera_width/2)), 
                     pz_pcb_thickness])
@@ -562,7 +561,7 @@ module pzw(gpio_header = true, gpio_solder = true) {
                    -pz_usb_protrusion, 
                     pz_pcb_thickness])
             cube([pz_usb_length, pz_usb_width, pz_usb_height]);
-            
+
             
           
     }
@@ -585,6 +584,11 @@ module pzw(gpio_header = true, gpio_solder = true) {
             }
    }
 }
+////////////////////////////////////////
+//
+// End of pizero functions/modules
+//
+////////////////////////////
 
 case_inside_length = pz_max_length + 2*gap;
 case_inside_width = pz_max_width + 2*gap;
@@ -710,7 +714,7 @@ module bottom_shell() {
                 difference(){
                 cylinder(d=pz_mount_hole_dia_clearance+3, h=standoffs+1);
                 //bottom hex cutouts
-                bolt_cutout();
+                bolt_cutout_base();
                 }
                 translate([0, 0, standoffs])
                     if (pins) 
@@ -757,7 +761,7 @@ module bottom() {
 }
 
 //bolt for base
-module bolt_cutout() {
+module bolt_cutout_base() {
     cylinder(r=bolt_head_d/2+.02, h=bolt_thickness+10, $fn=6);
 }
 
@@ -996,4 +1000,6 @@ translate([17,0,0]) {
 }
 }
 }
+
+
 }
