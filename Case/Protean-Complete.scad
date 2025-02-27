@@ -393,7 +393,7 @@ make_top=1;      // [0:No,1:Yes]
 
 /* [connectors] */
 sdcard_hole = 0; // [0:No,1:Yes] 
-power_hole = 1;  // [0:No,1:Yes] 
+power_hole = 0;  // [0:No,1:Yes] 
 hdmi_hole = 1;   // [0:No,1:Yes] 
 usb_hole = 1;    // [0:No,1:Yes] 
 camera_hole = 0; // [0:No,1:Yes] 
