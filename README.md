@@ -75,12 +75,10 @@ Modify the **crosshair.cfg** file (`/boot/crosshair.cfg`) to change settings:
 [main]
 width = 1280
 height = 720
-upload = false
-stream = false
 
 [overlay]
-xcenter = 400
-ycenter = 300
+xcenter = 360
+ycenter = 640
 color = white
 pattern = 1
 radius = 100
