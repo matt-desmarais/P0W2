@@ -52,13 +52,8 @@ Run the following command to install the required packages:
 ```
 curl -sL https://raw.githubusercontent.com/matt-desmarais/P0W2/main/install.sh | bash -
 ```
-### **3️⃣ Reboot and run code with sudo**
-```
-sudo python3 P0W2.py
-```
-this should generate the cfg file
 
-### **4️⃣ Reboot and the program should start when gamepad is powered on**
+### **3️⃣ Reboot and the program should start when gamepad is powered on**
 
 ## Usage
 This project uses the **8BitDo Zero 2 Bluetooth Gamepad** for control.
@@ -82,11 +77,16 @@ width = 1280
 height = 720
 
 [overlay]
-xcenter = 360
-ycenter = 640
+xcenter = 640
+ycenter = 360
 color = white
-pattern = 1
-radius = 100
+pattern = 5
+radius1x = 60
+radius4x = 240
+radius6x = 360
+hairwidth1x = 5
+hairwidth4x = 20
+hairwidth6x = 30
 ```
 
 ## License
