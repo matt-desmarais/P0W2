@@ -22,7 +22,6 @@ import threading
 from collections import OrderedDict
 from random import *
 import signal
-from LSM6DSL import *
 
 # pattern1: Bruker style crosshair with circles and ticks
 def pattern1( arr, width, height, x, y, rad, col ):
