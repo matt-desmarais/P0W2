@@ -7,7 +7,7 @@ import re
 import csv
 import time
 import math
-import IMU
+from imu import IMU
 import datetime
 import picamera
 import numpy as np
