@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Overview
-This project is a **digital scope system for a Nerf blaster**, designed using a **Raspberry Pi Zero 2**, **PiCamera**, **BerryIMU (LSM6DSL)**, and a **Vufine display**. It provides a **real-time heads-up display (HUD)** with **crosshairs, reticle overlays, and motion tracking** for enhanced targeting and recording capabilities.
+This project is a **digital scope system for a Nerf blaster**, designed using a **Raspberry Pi Zero 2**, **PiCamera**, **BerryIMU**, and a **Vufine display**. It provides a **real-time heads-up display (HUD)** with **crosshairs, reticle overlays, and motion tracking** for enhanced targeting and recording capabilities.
 
 ## Features
 - **Real-Time Video Processing**  
@@ -13,7 +13,7 @@ This project is a **digital scope system for a Nerf blaster**, designed using a 
 
 - **Motion Tracking (IMU Integration)**  
   - Tracks **pitch and roll** to dynamically adjust crosshair alignment.  
-  - Uses an **LSM6DSL/BerryIMU** for precise orientation detection.  
+  - Uses an **BerryIMU** for precise orientation detection.  
 
 - **Shotcam Recording & Playback**  
   - Captures the last **10 seconds** upon button press.  
