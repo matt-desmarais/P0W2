@@ -87,6 +87,8 @@ radius6x = 360
 hairwidth1x = 5
 hairwidth4x = 20
 hairwidth6x = 30
+leftright = 32767
+updown = 33023
 ```
 
 ## License
