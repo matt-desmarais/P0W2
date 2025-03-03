@@ -1,3 +1,4 @@
+import sys
 import io
 import threading
 import os
@@ -551,15 +552,25 @@ def update_zoom():
     print(f"Zoom updated: {zoom_factor}x, Centered at ({xcenter}, {ycenter})")
 
 def zoom_in():
-    global zoomcount, hairwidth, radius
+    global zoomcount, hairwidth, radius,xcenter
     if zoomcount == 0:
         target_zoom = 12
         hairwidth = hairwidth4x
         radius = radius4x
+        if camera.rotation == 270:
+            xcenter = prevxcenter - 40
+        if camera.rotation == 90:
+            xcenter = prevxcenter + 40
+        togglepattern3()
     elif zoomcount == 12:
         target_zoom = 14
         hairwidth = hairwidth6x
         radius = radius6x
+        if camera.rotation == 270:
+            xcenter = prevxcenter - 60
+        if camera.rotation == 90:
+            xcenter =prevxcenter + 60
+        togglepattern3()
     else:
         return  # Already at max zoom
 
@@ -572,15 +583,25 @@ def zoom_in():
     print(f"Zoom increased to level {zoomcount}")
 
 def zoom_out():
-    global zoomcount, hairwidth, radius
+    global zoomcount, hairwidth, radius, xcenter, prevxcenter
     if zoomcount == 14:
         target_zoom = 12
         hairwidth = hairwidth4x
         radius = radius4x
+        if camera.rotation == 270:
+            xcenter = prevxcenter - 40
+        if camera.rotation == 90:
+            xcenter = prevxcenter + 40
+        togglepattern3()
     elif zoomcount == 12:
         target_zoom = 0
         hairwidth = hairwidth1x
         radius = radius1x
+        if camera.rotation == 270:
+            xcenter = prevxcenter - 10
+        if camera.rotation == 90:
+            xcenter = prevxcenter + 10
+        togglepattern3()
     else:
         return  # Already at min zoom
 
@@ -806,14 +827,41 @@ def togglepattern4(roll):
     if(roll < -1 and roll >= -1.5 and camera.rotation != 90):
         print("left")
         camera.rotation = 90
+#        time.sleep(0.5)
+        if zoomcount == 0:
+            xcenter += 10
+        elif zoomcount == 12:
+            xcenter += 40
+        else:
+            xcenter += 60
+#        update_zoom()
+#        togglepattern3()
+#        camera.resolution = (camera.resolution[0], camera.resolution[1])  # Reapply resolution
     elif(roll > 1 and roll <= 1.5 and camera.rotation != 270):
         print("right")
         camera.rotation = 270
+#        time.sleep(0.5)
+
+        if zoomcount == 0:
+            xcenter -= 10
+        elif zoomcount == 12:
+            xcenter -= 40
+        else:
+            xcenter -= 60
+#        update_zoom()
+#        togglepattern3()
+#        camera.resolution = (camera.resolution[0], camera.resolution[1])  # Reapply resolution
     elif(roll >= -1 and roll <= 1 and camera.rotation != 180):
         camera.rotation = 180
+#        time.sleep(0.5)
         print("normal")
+        xcenter = prevxcenter
+#        update_zoom()
+#        togglepattern3()
     else:
         return
+#    time.sleep(.25)
+    togglepattern3()
     # if overlay is inactive, ignore button:
     if togsw == 0:
         print("Pattern button pressed, but ignored --- Crosshair not visible.")
@@ -835,11 +883,34 @@ def togglepattern4(roll):
             o = camera.add_overlay(bytes(gui), layer=3, alpha=alphaValue)
     return
 
+def clear_screen():
+    """Stops the camera preview, waits, and restarts it to clear any artifacts."""
+    global camera
+
+    camera.stop_preview()  # Stop current preview
+    time.sleep(0.25)        # Wait to ensure it's cleared
+    camera.start_preview() # Restart preview
+    print("Screen cleared!")
+    togglepattern3()
+
 def patternswitcherZoomIn(target,guitoggle):
     global o, zoomcount, ycenter, hairwidth, radius
     # first remove existing overlay:
     if 'o' in globals() and o != None:
-        camera.remove_overlay(o)
+#        camera.remove_overlay(o)
+        try:
+            camera.remove_overlay(o)
+        except picamera.PiCameraValueError:
+            print("Overlay does not belong to this instance, skipping removal.")
+            camera.close()
+            sys.exit(0)
+            #clear_screen()
+            # Create a blank (black/transparent) overlay
+            #blank_overlay = np.zeros((height, width, 3), dtype=np.uint8)
+            #o = camera.add_overlay(bytes(blank_overlay), layer=3, alpha=255)  # Fully transparent
+            #time.sleep(0.1)  # Allow time for the screen to refresh
+            #camera.remove_overlay(o)  # Now safely remove it
+            #o = None
     if zooms['zoom_xy'] == zooms['zoom_xy_max']:
         print("zoom at max")
     # cycle through possible patterns:
@@ -873,7 +944,20 @@ def patternswitcherZoomOut(target,guitoggle):
     global o, zoomcount, xcenter, ycenter, ycenterList, radius
     # first remove existing overlay:
     if 'o' in globals() and o != None:
-        camera.remove_overlay(o)
+#        camera.remove_overlay(o)
+        try:
+            camera.remove_overlay(o)
+        except picamera.PiCameraValueError:
+            print("Overlay does not belong to this instance, skipping removal.")
+            camera.close()
+            sys.exit(0)
+            #clear_screen()
+            # Create a blank (black/transparent) overlay
+            #blank_overlay = np.zeros((height, width, 3), dtype=np.uint8)
+            #o = camera.add_overlay(bytes(blank_overlay), layer=3, alpha=255)  # Fully transparent
+            #time.sleep(0.1)  # Allow time for the screen to refresh
+            #camera.remove_overlay(o)  # Now safely remove it
+            #o = None
     if zooms['zoom_xy'] == zooms['zoom_xy_min']:
         print("zoom at min")
     # cycle through possible patterns:
@@ -1023,6 +1107,8 @@ gui2 = ' Version 1.0'
 #leftright = 32767
 #updown = 33023
 
+prevxcenter = xcenter
+
 with picamera.PiCamera() as camera:
     camera.resolution = (width, height)
     print(stream)
@@ -1052,21 +1138,23 @@ with picamera.PiCamera() as camera:
                 absevent = categorize(event) 
                 if ecodes.bytype[absevent.event.type][absevent.event.code] == 'ABS_X':
                     print(absevent.event.value)
-                    if(absevent.event.value > 65000):
+                    if(absevent.event.value > 65000 and camera.rotation == 180):
                        print("right")
                        xcenter = xcenter +5
+                       prevxcenter = xcenter
                        togglepattern3()
-                    elif (absevent.event.value < 500): #32767):
+                    elif (absevent.event.value < 500 and camera.rotation == 180):
                        print("left")
                        xcenter = xcenter -5
+                       prevxcenter = xcenter
                        togglepattern3()
                 if ecodes.bytype[absevent.event.type][absevent.event.code] == 'ABS_Y':
                     print(absevent.event.value)
-                    if(absevent.event.value > 65000):
+                    if(absevent.event.value > 65000 and camera.rotation == 180):
                         print("down")
                         ycenter = ycenter +5
                         togglepattern3()
-                    elif (absevent.event.value < 500):
+                    elif (absevent.event.value < 500 and camera.rotation == 180):
                         print("up")
                         ycenter = ycenter -5
                         togglepattern3()
@@ -1120,11 +1208,11 @@ with picamera.PiCamera() as camera:
                 if event.code == lTrig:
                     print("left bumper")
                     zoom_out()
-                    togglepattern3()
+                    #togglepattern3()
                 if event.code == rTrig:
                     print("right bumper")
                     zoom_in()
-                    togglepattern3()
+                    #togglepattern3()
             if event.value == 2 and not busy:
                 if event.code == start:
                     print("hstart")
@@ -1134,11 +1222,11 @@ with picamera.PiCamera() as camera:
                 if event.code == lTrig and zoomcount > 0:
                     print("hleft bumper")
                     zoom_out()
-                    togglepattern3()
+                    #togglepattern3()
                 if event.code == rTrig and zoomcount < 14:
                     print("hright bumper")
                     zoom_in()
-                    togglepattern3()
+                    #togglepattern3()
 
     except (KeyboardInterrupt, SystemExit): #when you press ctrl+c
         print("\nExiting Program")
