@@ -654,8 +654,8 @@ cdefaults = {
             'hairwidth6x': '30',
             'xcenter': '640',
             'ycenter': '360',
-            'leftright': '32767',
-            'updown': '33023'
+            #'leftright': '32767',
+            #'updown': '33023'
             }
 
 # if config file is missing, recreate it with default values:
@@ -674,8 +674,8 @@ def CreateConfigFromDef(fileloc,defaults):
     config.set('overlay', 'hairwidth1x', cdefaults.get('hairwidth1x'))
     config.set('overlay', 'hairwidth4x', cdefaults.get('hairwidth4x'))
     config.set('overlay', 'hairwidth6x', cdefaults.get('hairwidth6x'))
-    config.set('overlay', 'leftright', cdefaults.get('leftright'))
-    config.set('overlay', 'updown', cdefaults.get('updown'))
+#    config.set('overlay', 'leftright', cdefaults.get('leftright'))
+#    config.set('overlay', 'updown', cdefaults.get('updown'))
 
     config.set('main', 'width', cdefaults.get('width'))
     config.set('main', 'height', cdefaults.get('height'))
@@ -718,8 +718,8 @@ radius6x = int(config.get('overlay', 'radius6x'))
 hairwidth1x = int(config.get('overlay', 'hairwidth1x'))
 hairwidth4x = int(config.get('overlay', 'hairwidth4x'))
 hairwidth6x = int(config.get('overlay', 'hairwidth6x'))
-leftright = int(config.get('overlay', 'leftright'))
-updown = int(config.get('overlay', 'updown'))
+#leftright = int(config.get('overlay', 'leftright'))
+#updown = int(config.get('overlay', 'updown'))
 hairwidth = hairwidth1x
 radius = radius1x
 
@@ -1052,21 +1052,21 @@ with picamera.PiCamera() as camera:
                 absevent = categorize(event) 
                 if ecodes.bytype[absevent.event.type][absevent.event.code] == 'ABS_X':
                     print(absevent.event.value)
-                    if(absevent.event.value > leftright):
+                    if(absevent.event.value > 65000):
                        print("right")
                        xcenter = xcenter +5
                        togglepattern3()
-                    elif (absevent.event.value < leftright): #32767):
+                    elif (absevent.event.value < 500): #32767):
                        print("left")
                        xcenter = xcenter -5
                        togglepattern3()
                 if ecodes.bytype[absevent.event.type][absevent.event.code] == 'ABS_Y':
                     print(absevent.event.value)
-                    if(absevent.event.value > updown):
+                    if(absevent.event.value > 65000):
                         print("down")
                         ycenter = ycenter +5
                         togglepattern3()
-                    elif (absevent.event.value < updown):
+                    elif (absevent.event.value < 500):
                         print("up")
                         ycenter = ycenter -5
                         togglepattern3()
