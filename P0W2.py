@@ -306,48 +306,75 @@ def read_voltage():
     return (raw_data >> 3) * 0.004
 
 def shotcam():
-    global camera, filename, busy, process, curcol
+    global camera, filename, busy, process, curcol, shotcamvideo
     busy = True
+    #time.sleep(1)
     # Get the filename
     shotcam_file = "/mnt/usb_share/"+get_shotcam_file()
+    temp_file = "/mnt/usb_share/"+get_temp_mp4_file_name()
     # FFmpeg command for overlaying crosshairs
-    ffmpeg_command = (
-        'sudo ffmpeg -i trimmed.mp4 -vf "drawbox=x={xcenter}:y=0:w=2:h=720:color={curcol}@0.8:t=fill,'
-        'drawbox=x=0:y={ycenter}:w=1280:h=2:color={curcol}@0.8:t=fill" -preset ultrafast -c:a copy -threads 1 "{shotcam_file}"'
-    ).format(xcenter=xcenter, ycenter=ycenter, shotcam_file=shotcam_file, curcol=curcol)
-    print("🔹 Trimming last 5MB from video file...")
-    subprocess.run(f"tail -c 15000000 {filename} > temp.h264", shell=True, check=True)
+
+
+    # Properly formatted FFmpeg command
+    shotcam_cmd = f"""
+        tail -c 15000000 {filename} > temp.h264 && \
+        ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json temp.h264 && \
+        ffmpeg -y -fflags +genpts -i temp.h264 -c:v copy temp_fixed.h264 && \
+        ffmpeg -y -framerate 30 -i temp_fixed.h264 -c:v copy -movflags +faststart {temp_file} && \
+        ffmpeg -y -sseof -10.5 -i {temp_file} -c:v copy trimmed.mp4 && \
+        sudo ffmpeg -i trimmed.mp4 -vf "drawbox=x={xcenter}:y=0:w=2:h=720:color={curcol}@0.8:t=fill, \
+        drawbox=x=0:y={ycenter}:w=1280:h=2:color={curcol}@0.8:t=fill" -preset ultrafast -c:a copy -threads 1 "{shotcam_file}"
+    """
+
+
+    #).format(xcenter=xcenter, ycenter=ycenter, shotcam_file=shotcam_file, curcol=curcol)
+    video_cmd = f"""
+         tail -c 15000000 {filename} > temp.h264 && \
+         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json temp.h264 && \
+         ffmpeg -y -fflags +genpts -i temp.h264 -c:v copy temp_fixed.h264 && \
+         ffmpeg -y -framerate 30 -i temp_fixed.h264 -c:v copy -movflags +faststart {temp_file}
+        """
+#    )
+#    print("🔹 Trimming last 15MB from video file...")
+#    subprocess.run(f"tail -c 15000000 {filename} > temp.h264", shell=True, check=True)
     # Validate temp.h264 to check for corruption
-    print("🔹 Checking integrity of temp.h264...")
-    ffprobe_cmd = "ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json temp.h264"
-    result = subprocess.run(ffprobe_cmd, shell=True, capture_output=True, text=True)
+#    print("🔹 Checking integrity of temp.h264...")
+#    ffprobe_cmd = "ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json temp.h264"
+#    result = subprocess.run(ffprobe_cmd, shell=True, capture_output=True, text=True)
 
-    if "codec_name" not in result.stdout:
-        print("❌ Error: temp.h264 is corrupted or missing frames.")
-        busy = False
-        return
+#    if "codec_name" not in result.stdout:
+##        print("❌ Error: temp.h264 is corrupted or missing frames.")
+#        busy = False
+#        return
 
-    print("✅ temp.h264 is valid!")
+#    print("✅ temp.h264 is valid!")
 
     # Fix timestamps in H.264 file to prevent playback issues
-    print("🔹 Fixing timestamps in temp.h264...")
-    subprocess.run("ffmpeg -y -fflags +genpts -i temp.h264 -c:v copy temp_fixed.h264", shell=True, check=True)
+#    print("🔹 Fixing timestamps in temp.h264...")
+#    subprocess.run("ffmpeg -y -fflags +genpts -i temp.h264 -c:v copy temp_fixed.h264", shell=True, check=True)
 
     # Convert raw H.264 to MP4 with proper metadata
-    print("🔹 Converting temp_fixed.h264 to MP4...")
-    temp_file = "/mnt/usb_share/"+get_temp_mp4_file_name()
-    subprocess.run("sudo ffmpeg -y -framerate 30 -i temp_fixed.h264 -c:v copy -movflags +faststart "+temp_file, shell=True, check=True)
+#    print("🔹 Converting temp_fixed.h264 to MP4...")
+#    temp_file = "/mnt/usb_share/"+get_temp_mp4_file_name()
+#    subprocess.run("sudo ffmpeg -y -framerate 30 -i temp_fixed.h264 -c:v copy -movflags +faststart "+temp_file, shell=True, check=True)
 
+    if(shotcamvideo == "True" or shotcamvideo == "true"):
+        print("🔹 Starting shotcam chained FFmpeg processing...")
+        process = subprocess.Popen(shotcam_cmd, shell=True) # stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        print("🔹 Starting video chained FFmpeg processing...")
+        process = subprocess.Popen(video_cmd, shell=True) #, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    print("🔹 Extracting last 10 seconds using -sseof...")
-    subprocess.run(f"ffmpeg -y -sseof -10.5 -i "+temp_file+" -c:v copy trimmed.mp4", shell=True, check=True)
-
-    try:
-        print("🔹 Applying crosshair overlay and saving final video...")
-        process = subprocess.Popen(ffmpeg_command, shell=True)
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Error executing FFmpeg overlay command: {e}")
-
+        #print("🔹 Extracting last 10 seconds using -sseof...")
+        #subprocess.run(f"ffmpeg -y -sseof -10.5 -i "+temp_file+" -c:v copy trimmed.mp4", shell=True, check=True)
+#        try:
+#            print("🔹 Applying crosshair overlay and saving final video...")
+#            process = subprocess.Popen(ffmpeg_command, shell=True)
+#        except subprocess.CalledProcessError as e:
+#            print(f"❌ Error executing FFmpeg overlay command: {e}")
+#    else:
+#        pass
+#        busy = False
 
 def annotate_thread():
     global curcol, toggleText, toggleStability, busy, process, power_percent, camera, zooms
@@ -455,10 +482,13 @@ def annotate_thread():
         togglepattern4(roll)
         #camera.annotate_text_size = 85
         try:
+#            if(shotcamvideo == "True" or shotcamvideo == "true"):
             if(process.poll() == 0):
                 busy = False
             else:
                 busy = True
+            #else:
+            #   busy = False
         except:
             pass
         if(toggleText or toggleStability):
@@ -491,13 +521,17 @@ def annotate_thread():
 
             camera.annotate_text = annotate_text
         else:
-            camera.annotate_text = ""
+            camera.annotate_text_size = 85
+            if(busy): #or process.poll() is None):
+                camera.annotate_text = "\nBusy"
+            else:
+                camera.annotate_text = ""
 
 def get_file_name_pic():  # new
     return datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S.png")
 
 def get_temp_mp4_file_name():
-    return datetime.datetime.now().strftime("Temp-%Y-%m-%d_%H.%M.%S.mp4")
+    return datetime.datetime.now().strftime("Video-%Y-%m-%d_%H.%M.%S.mp4")
 
 
 def zoom_all_the_way_in():
@@ -675,6 +709,7 @@ cdefaults = {
             'hairwidth6x': '30',
             'xcenter': '640',
             'ycenter': '360',
+            'shotcamvideo': 'False'
             #'leftright': '32767',
             #'updown': '33023'
             }
@@ -697,7 +732,7 @@ def CreateConfigFromDef(fileloc,defaults):
     config.set('overlay', 'hairwidth6x', cdefaults.get('hairwidth6x'))
 #    config.set('overlay', 'leftright', cdefaults.get('leftright'))
 #    config.set('overlay', 'updown', cdefaults.get('updown'))
-
+    config.set('overlay', 'shotcamvideo', cdefaults.get('shotcamvideo'))
     config.set('main', 'width', cdefaults.get('width'))
     config.set('main', 'height', cdefaults.get('height'))
     # write default settings to new config file:
@@ -739,6 +774,8 @@ radius6x = int(config.get('overlay', 'radius6x'))
 hairwidth1x = int(config.get('overlay', 'hairwidth1x'))
 hairwidth4x = int(config.get('overlay', 'hairwidth4x'))
 hairwidth6x = int(config.get('overlay', 'hairwidth6x'))
+shotcamvideo = str(config.get('overlay', 'shotcamvideo'))
+print("shotcamvideo: "+shotcamvideo)
 #leftright = int(config.get('overlay', 'leftright'))
 #updown = int(config.get('overlay', 'updown'))
 hairwidth = hairwidth1x
@@ -1162,10 +1199,15 @@ with picamera.PiCamera() as camera:
 
 
 
-               #if(prevhold != event.code):
+            #if(prevhold != event.code):
+            #    prevhold = None
             if event.value == 1:
+                #prevhold = None
                 if event.code == start:
+                    prevhold = None
                     print("start")
+                    print("prevhold: "+str(prevhold))
+                    print("busy: "+str(busy))
                     os.system("/usr/bin/raspi2png -p /mnt/usb_share/"+get_file_name_pic())
                 if event.code == yBtn:
                     print("Y")
@@ -1213,12 +1255,16 @@ with picamera.PiCamera() as camera:
                     print("right bumper")
                     zoom_in()
                     #togglepattern3()
-            if event.value == 2 and not busy:
-                if event.code == start:
+            if event.value == 2 and not busy: #and prevhold != start:
+                if event.code == start and prevhold != start:
                     print("hstart")
                     camera.annotate_text = "\nShot Cam"
+                    prevhold = event.code
                     busy = True
                     shotcam()
+#                    prevhold = event.code
+                    #if(shotcamvideo != "True" and shotcamvideo != "true"):
+                    #    busy = False
                 if event.code == lTrig and zoomcount > 0:
                     print("hleft bumper")
                     zoom_out()
@@ -1227,6 +1273,10 @@ with picamera.PiCamera() as camera:
                     print("hright bumper")
                     zoom_in()
                     #togglepattern3()
+#                prevhold = event.code
+                busy = False
+        if(prevhold == start):
+            prevhold = None
 
     except (KeyboardInterrupt, SystemExit): #when you press ctrl+c
         print("\nExiting Program")
