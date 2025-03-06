@@ -24,93 +24,85 @@ from collections import OrderedDict
 from random import *
 import signal
 
-# pattern1: Bruker style crosshair with circles and ticks
-def pattern1( arr, width, height, x, y, rad, col ):
-    global hairwidth
-    cv2.line(arr,(0,y),(width,y),(col),(hairwidth))
-    cv2.line(arr,(x,0),(x,height),col,hairwidth)
-    i = 0
-    for i in range(1, 8): 
-        cv2.circle(arr,(x,y),i*rad,col,hairwidth)
-        i += 1
-    # ticks on the horizontal axis:
-    intervalh = np.arange(0,width,float(rad)/10)
-    j = 0
-    for i in intervalh:
-        # make every 5th tick longer, omit every 10th tick:
-        diff = int(round(i))
-        if j%5 == 0:    
-            if not j%10 == 0:
-                cv2.line(arr,(x+diff,y-4),(x+diff,y+4),col,hairwidth)
-                cv2.line(arr,(x-diff,y-4),(x-diff,y+4),col,hairwidth)
-        else:
-            cv2.line(arr,(x+diff,y-2),(x+diff,y+3),col,hairwidth)
-            cv2.line(arr,(x-diff,y-2),(x-diff,y+3),col,hairwidth)
-        j += 1
-    # ticks on the vertical axis:
-    intervalv = np.arange(0,height,float(rad)/10)
-    l = 0
-    for k in intervalv:
-        # make every 5th and 10th tick longer:
-        diff = int(round(k))
-        if l%5 == 0:    
-            if l%10 == 0:
-                cv2.line(arr,(x-6,y+diff),(x+6,y+diff),col,hairwidth)
-                cv2.line(arr,(x-6,y-diff),(x+6,y-diff),col,hairwidth)
-            else:
-                cv2.line(arr,(x-4,y+diff),(x+4,y+diff),col,hairwidth)
-                cv2.line(arr,(x-4,y-diff),(x+4,y-diff),col,hairwidth)
-        else:
-            cv2.line(arr,(x-2,y+diff),(x+2,y+diff),col,hairwidth)
-            cv2.line(arr,(x-2,y-diff),(x+2,y-diff),col,hairwidth)
-        l += 1
-    return    
+import cv2
+import numpy as np
 
-# pattern2: simple crosshair with ticks
-def pattern2( arr, width, height, x, y, rad, col ):
+import cv2
+import numpy as np
+
+def pattern1(arr, width, height, x, y, rad, col):
     global hairwidth
-    width = int(width)
-    height = int(height)
-    x = int(x)
-    y = int(y)
-    # cv2.circle(arr,(x,y),rad,col,1)
-    cv2.line(arr,(0,int(y)),(int(width),int(y)),col,hairwidth)
-    cv2.line(arr,(int(x),0),(int(x),int(height)),col,hairwidth)
-    # ticks on the horizontal axis:
-    intervalh = np.arange(0,width,float(rad)/10)
-    j = 0
-    for i in intervalh:
-        # make every 5th and 10th tick longer:
-        diff = int(round(i))
-        if j%5 == 0:    
-            if j%10 == 0:
-                cv2.line(arr,(x+diff,y-6),(x+diff,y+6),col,hairwidth)
-                cv2.line(arr,(x-diff,y-6),(x-diff,y+6),col,hairwidth)
-            else:
-                cv2.line(arr,(x+diff,y-4),(x+diff,y+4),col,hairwidth)
-                cv2.line(arr,(x-diff,y-4),(x-diff,y+4),col,hairwidth)
-        else:
-            cv2.line(arr,(x+diff,y-2),(x+diff,y+3),col,hairwidth)
-            cv2.line(arr,(x-diff,y-2),(x-diff,y+3),col,hairwidth)
-        j += 1
-    # ticks on the vertical axis:
-    intervalv = np.arange(0,height,float(rad)/10)
-    l = 0
-    for k in intervalv:
-        # make every 5th and 10th tick longer:
-        diff = int(round(k))
-        if l%5 == 0:    
-            if l%10 == 0:
-                cv2.line(arr,(x-6,y+diff),(x+6,y+diff),col,hairwidth)
-                cv2.line(arr,(x-6,y-diff),(x+6,y-diff),col,hairwidth)
-            else:
-                cv2.line(arr,(x-4,y+diff),(x+4,y+diff),col,hairwidth)
-                cv2.line(arr,(x-4,y-diff),(x+4,y-diff),col,hairwidth)
-        else:
-            cv2.line(arr,(x-2,y+diff),(x+2,y+diff),col,hairwidth)
-            cv2.line(arr,(x-2,y-diff),(x+2,y-diff),col,hairwidth)
-        l += 1
-    return    
+
+    # Draw center crosshair
+    cv2.line(arr, (0, y), (width, y), col, hairwidth)
+    cv2.line(arr, (x, 0), (x, height), col, hairwidth)
+
+    # Draw concentric circles
+    for i in range(1, 8): 
+        cv2.circle(arr, (x, y), i * rad, col, hairwidth)
+
+    # Define tick sizes based on hairwidth
+    if hairwidth <= 4:
+        tick_small = 0
+        tick_medium = 12
+        tick_large = 16
+    else:
+        tick_small = 0 #hairwidth #* 2
+        tick_medium = hairwidth * 3
+        tick_large = hairwidth * 4
+
+    # Ticks on the horizontal axis
+    intervalh = np.arange(0, width, rad / 10)
+    for j, diff in enumerate(map(round, intervalh)):
+        if j % 10 == 0:
+            pass
+#            continue  # Skip every 10th tick
+        tick_length = tick_medium if j % 5 == 0 else tick_small
+        cv2.line(arr, (x + diff, y - tick_length), (x + diff, y + tick_length), col, hairwidth)
+        cv2.line(arr, (x - diff, y - tick_length), (x - diff, y + tick_length), col, hairwidth)
+
+    # Ticks on the vertical axis
+    intervalv = np.arange(0, height, rad / 10)
+    for l, diff in enumerate(map(round, intervalv)):
+        tick_length = tick_large if l % 15 == 0 else (tick_medium if l % 5 == 0 else tick_small)
+        cv2.line(arr, (x - tick_length, y + diff), (x + tick_length, y + diff), col, hairwidth)
+        cv2.line(arr, (x - tick_length, y - diff), (x + tick_length, y - diff), col, hairwidth)
+
+    return
+
+def pattern2(arr, width, height, x, y, rad, col):
+    global hairwidth
+    width, height, x, y = map(int, (width, height, x, y))
+
+    # Draw center crosshair
+    cv2.line(arr, (0, y), (width, y), col, hairwidth)
+    cv2.line(arr, (x, 0), (x, height), col, hairwidth)
+
+    # Define tick sizes based on hairwidth
+    if hairwidth <= 4:
+        tick_small = 0
+        tick_medium = 12
+        tick_large = 16
+    else:
+        tick_small = 0 #hairwidth #* 2
+        tick_medium = 0 #hairwidth #* 2
+        tick_large = hairwidth * 4
+
+    # Ticks on the horizontal axis
+    intervalh = np.arange(0, width, rad / 10)
+    for j, diff in enumerate(map(round, intervalh)):
+        tick_length = tick_large if j % 10 == 0 else (tick_medium if j % 5 == 0 else tick_small)
+        cv2.line(arr, (x + diff, y - tick_length), (x + diff, y + tick_length), col, hairwidth)
+        cv2.line(arr, (x - diff, y - tick_length), (x - diff, y + tick_length), col, hairwidth)
+
+    # Ticks on the vertical axis
+    intervalv = np.arange(0, height, rad / 10)
+    for l, diff in enumerate(map(round, intervalv)):
+        tick_length = tick_large if l % 10 == 0 else (tick_medium if l % 5 == 0 else tick_small)
+        cv2.line(arr, (x - tick_length, y + diff), (x + tick_length, y + diff), col, hairwidth)
+        cv2.line(arr, (x - tick_length, y - diff), (x + tick_length, y - diff), col, hairwidth)
+
+    return
 
 # pattern3: simple crosshair without ticks
 def pattern3( arr, width, height, x, y, rad, col ):
@@ -163,7 +155,7 @@ def pattern8( arr, width, height, x, y, rad, col ):
 # pattern9: only a dot
 def pattern9( arr, width, height, x, y, rad, col ):
     global hairwidth
-    cv2.circle(arr,(x,y),2,col,2)
+    cv2.circle(arr,(x,y),2,col,hairwidth)
     return
 
 # pattern10: grid
@@ -498,7 +490,7 @@ def annotate_thread():
                 zoom_factor = 1 / zooms['zoom_wh']
 
                 # Round to 1 decimal place for readability
-                zoom_factor = round(zoom_factor, 1)
+                zoom_factor = round(zoom_factor, 0)
 
                 if(busy): # or process.poll() is None):
                     annotate_text = "X:"+str(xcenter)+"     "+"Zoom:"+str(zoom_factor)+"       Y:"+str(ycenter)+"\nBusy"
@@ -552,38 +544,72 @@ def zoom_all_the_way_out():
 
     update_zoom()  # Apply the zoom
 
+
 def update_zoom():
     global roi, zoomcount, xcenter, ycenter, width, height, camera, zooms
 
-    # Compute zoom factor
-    zoom_factor = 1 / zooms['zoom_wh']
-
-    # Convert `xcenter, ycenter` to normalized (0-1) coordinates
+    # Compute normalized (0-1) center coordinates
     x_norm = xcenter / width
     y_norm = ycenter / height
 
-    # Ensure zoom area is within valid bounds
-    zoom_width = max(zooms['zoom_wh'], 0.2)
-    zoom_width = min(zoom_width, 1.0)
+    # Ensure zoom width is within bounds
+    zoom_width = max(zooms['zoom_wh'], 0.2)  # Prevent excessive zoom-out
+    zoom_width = min(zoom_width, 1.0)  # Prevent excessive zoom-in
 
-    # Calculate the zoom box with a **small upward adjustment**
+    # Calculate half zoom size
     half_zoom = zoom_width / 2
-    x_start = x_norm - half_zoom
-    y_start = y_norm - half_zoom #- 0.01  # **Shift up slightly**
 
-    # Clamp to valid image bounds
+    # Adjusted start points to ensure centering
+    x_start = x_norm - half_zoom
+    y_start = y_norm - half_zoom
+
+    # Clamp values to keep zoom within image boundaries
     x_start = max(0.0, min(x_start, 1.0 - zoom_width))
     y_start = max(0.0, min(y_start, 1.0 - zoom_width))
 
-    # Apply updated zoom settings
+    # Apply zoom
     camera.zoom = (
-        round(x_start, 10),
-        round(y_start, 10),
-        round(zoom_width, 10),
-        round(zoom_width, 10),
+        round(x_start, 6),
+        round(y_start, 6),
+        round(zoom_width, 6),
+        round(zoom_width, 6),
     )
 
-    print(f"Zoom updated: {zoom_factor}x, Centered at ({xcenter}, {ycenter})")
+    print(f"Zoom updated: {zoom_width}x, Centered at ({xcenter}, {ycenter})")
+
+
+#def update_zoom():
+#    global roi, zoomcount, xcenter, ycenter, width, height, camera, zooms
+#
+#    # Compute zoom factor
+#    zoom_factor = 1 / zooms['zoom_wh']
+#
+#    # Convert `xcenter, ycenter` to normalized (0-1) coordinates
+#    x_norm = xcenter / width
+#    y_norm = ycenter / height
+#
+#    # Ensure zoom area is within valid bounds
+#    zoom_width = max(zooms['zoom_wh'], 0.2)
+#    zoom_width = min(zoom_width, 1.0)
+#
+#    # Calculate the zoom box with a **small upward adjustment**
+#    half_zoom = zoom_width / 2
+#    x_start = x_norm - half_zoom
+#    y_start = y_norm - half_zoom #- 0.01  # **Shift up slightly**
+#
+#    # Clamp to valid image bounds
+#    x_start = max(0.0, min(x_start, 1.0 - zoom_width))
+#    y_start = max(0.0, min(y_start, 1.0 - zoom_width))
+#
+#    # Apply updated zoom settings
+#    camera.zoom = (
+#        round(x_start, 100),
+#        round(y_start, 100),
+#        round(zoom_width, 100),
+#        round(zoom_width, 100),
+#    )
+#
+#    print(f"Zoom updated: {zoom_factor}x, Centered at ({xcenter}, {ycenter})")
 
 def zoom_in():
     global zoomcount, hairwidth, radius,xcenter
@@ -885,6 +911,7 @@ def togglepattern4(roll):
             xcenter -= 40
         else:
             xcenter -= 60
+
 #        update_zoom()
 #        togglepattern3()
 #        camera.resolution = (camera.resolution[0], camera.resolution[1])  # Reapply resolution
