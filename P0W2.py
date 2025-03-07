@@ -42,7 +42,7 @@ def pattern1(arr, width, height, x, y, rad, col):
         cv2.circle(arr, (x, y), i * rad, col, hairwidth)
 
     # Define tick sizes based on hairwidth
-    if hairwidth <= 4:
+    if hairwidth <= 5:
         tick_small = 0
         tick_medium = 12
         tick_large = 16
@@ -79,7 +79,7 @@ def pattern2(arr, width, height, x, y, rad, col):
     cv2.line(arr, (x, 0), (x, height), col, hairwidth)
 
     # Define tick sizes based on hairwidth
-    if hairwidth <= 4:
+    if hairwidth <= 5:
         tick_small = 0
         tick_medium = 12
         tick_large = 16
@@ -139,17 +139,23 @@ def pattern6( arr, width, height, x, y, rad, col ):
 # pattern7: small center crosshair
 def pattern7( arr, width, height, x, y, rad, col ):
     global hairwidth
-    cv2.line(arr,(x-10,y),(x+10,y),col,hairwidth)
-    cv2.line(arr,(x,y-10),(x,y+10),col,hairwidth)
+    cv2.line(arr,(x-hairwidth*3,y),(x+hairwidth*3,y),col,hairwidth)
+    cv2.line(arr,(x,y-hairwidth*3),(x,y+hairwidth*3),col,hairwidth)
+#    cv2.line(arr,(x-10,y),(x+10,y),col,hairwidth)
+#    cv2.line(arr,(x,y-10),(x,y+10),col,hairwidth)
     return
 
 # pattern8: small center crosshair without center
 def pattern8( arr, width, height, x, y, rad, col ):
     global hairwidth
-    cv2.line(arr,(x-20,y),(x-13,y),col,hairwidth)
-    cv2.line(arr,(x,y-20),(x,y-13),col,hairwidth)
-    cv2.line(arr,(x+13,y),(x+20,y),col,hairwidth)
-    cv2.line(arr,(x,y+13),(x,y+20),col,hairwidth)
+    cv2.line(arr,(x-hairwidth*3,y),(x-hairwidth*2,y),col,hairwidth)
+    cv2.line(arr,(x,y-hairwidth*3),(x,y-hairwidth*2),col,hairwidth)
+    cv2.line(arr,(x+hairwidth*2,y),(x+hairwidth*3,y),col,hairwidth)
+    cv2.line(arr,(x,y+hairwidth*2),(x,y+hairwidth*3),col,hairwidth)
+#    cv2.line(arr,(x-20,y),(x-13,y),col,hairwidth)
+#    cv2.line(arr,(x,y-20),(x,y-13),col,hairwidth)
+#    cv2.line(arr,(x+13,y),(x+20,y),col,hairwidth)
+#    cv2.line(arr,(x,y+13),(x,y+20),col,hairwidth)
     return
 
 # pattern9: only a dot
@@ -692,7 +698,7 @@ def get_file_name_pic():  # new
 
 #gunRange = 30
 global alphaValue
-alphaValue = 50
+alphaValue = 75
 
 globalCounter = 0
 
@@ -727,6 +733,8 @@ cdefaults = {
             'height': '720',
             'color': 'white',
             'pattern': '5',
+            'opacity': '60',
+            'brightness': '60',
             'radius1x': '100',
             'hairwidth1x': '5',
             'radius4x': '200',
@@ -756,14 +764,79 @@ def CreateConfigFromDef(fileloc,defaults):
     config.set('overlay', 'hairwidth1x', cdefaults.get('hairwidth1x'))
     config.set('overlay', 'hairwidth4x', cdefaults.get('hairwidth4x'))
     config.set('overlay', 'hairwidth6x', cdefaults.get('hairwidth6x'))
-#    config.set('overlay', 'leftright', cdefaults.get('leftright'))
-#    config.set('overlay', 'updown', cdefaults.get('updown'))
     config.set('overlay', 'shotcamvideo', cdefaults.get('shotcamvideo'))
+    config.set('overlay', 'opacity', cdefaults.get('opacity'))
+    config.set('overlay', 'brightness', cdefaults.get('brightness'))
     config.set('main', 'width', cdefaults.get('width'))
     config.set('main', 'height', cdefaults.get('height'))
     # write default settings to new config file:
     with open(fileloc, 'w') as f:
         config.write(f)
+
+
+
+def saveSettings(fileloc):
+    print("Saving " + fileloc + " using current settings.")
+    
+    # Create a new ConfigParser object
+    config = ConfigParser.ConfigParser()
+
+    # Check and add sections only if they don’t exist
+    if not config.has_section('main'):
+        config.add_section('main')
+
+    if not config.has_section('overlay'):
+        config.add_section('overlay')
+
+    # Set values
+    config.set('overlay', 'xcenter', str(xcenter))
+    config.set('overlay', 'ycenter', str(ycenter))
+    config.set('overlay', 'color', str(curcol))
+    config.set('overlay', 'pattern', str(curpat2))
+    config.set('overlay', 'radius1x', str(radius1x))
+    config.set('overlay', 'radius4x', str(radius4x))
+    config.set('overlay', 'radius6x', str(radius6x))
+    config.set('overlay', 'hairwidth1x', str(hairwidth1x))
+    config.set('overlay', 'hairwidth4x', str(hairwidth4x))
+    config.set('overlay', 'hairwidth6x', str(hairwidth6x))
+    config.set('overlay', 'shotcamvideo', str(shotcamvideo))
+    config.set('overlay', 'opacity', str(opacity))
+    config.set('overlay', 'brightness', str(brightness))
+    config.set('main', 'width', str(width))
+    config.set('main', 'height', str(height))
+
+    # Remove old file before writing a new one
+    if os.path.exists(fileloc):
+        os.remove(fileloc)
+
+    # Write the new config file
+    with open(fileloc, 'w') as f:
+        config.write(f)
+
+
+#def saveSettings(fileloc):
+#    print("Savings " + fileloc + " using current settings.")
+#    config.add_section('main')
+#    config.add_section('overlay')
+#    config.set('overlay', 'xcenter', xcenter)
+#    config.set('overlay', 'ycenter', ycenter)
+#    config.set('overlay', 'color', curcol)
+#    config.set('overlay', 'pattern', curpat2)
+#    config.set('overlay', 'radius1x', radius1x)
+#    config.set('overlay', 'radius4x', radius4x)
+#    config.set('overlay', 'radius6x', radius6x)
+#    config.set('overlay', 'hairwidth1x', hairwidth1x)
+#    config.set('overlay', 'hairwidth4x', hairwidth4x)
+#    config.set('overlay', 'hairwidth6x', hairwidth6x)
+#    config.set('overlay', 'shotcamvideo', shotcamvideo)
+#    config.set('overlay', 'opacity', opacity)
+#    config.set('overlay', 'brightness', brightness)
+#    config.set('main', 'width', width)
+#    config.set('main', 'height', height)
+#    # write default settings to new config file:
+#    open(fileloc, 'w').close()  # Clears the file
+#    with open(fileloc, 'w') as f:
+#        config.write(f)
 
 # try to read settings from config file; if it doesn't exist
 # create one from defaults & use same defaults for this run:
@@ -797,6 +870,9 @@ ycenter = int(config.get('overlay', 'ycenter'))
 radius1x = int(config.get('overlay', 'radius1x'))
 radius4x = int(config.get('overlay', 'radius4x'))
 radius6x = int(config.get('overlay', 'radius6x'))
+opacity = int(config.get('overlay', 'opacity'))
+brightness = int(config.get('overlay', 'brightness'))
+alphaValue = opacity
 hairwidth1x = int(config.get('overlay', 'hairwidth1x'))
 hairwidth4x = int(config.get('overlay', 'hairwidth4x'))
 hairwidth6x = int(config.get('overlay', 'hairwidth6x'))
@@ -1085,22 +1161,22 @@ def togglecolor():
 
 
 
-def loadFile():
-    global xcenter, ycenter
-    with open(zerofile) as f:
-        data = dict(filter(None, csv.reader(f)))
-    ycenter = list(data.keys())[0]
-    xcenter = list(data.values())[0]
-    xcenter = int(xcenter)
-    ycenter = int(ycenter)
-    print("X: "+str(xcenter))
-    print("Y: "+str(ycenter))
-    togglepattern3()
+#def loadFile():
+#    global xcenter, ycenter
+#    with open(zerofile) as f:
+#        data = dict(filter(None, csv.reader(f)))
+#    ycenter = list(data.keys())[0]
+#    xcenter = list(data.values())[0]
+#    xcenter = int(xcenter)
+#    ycenter = int(ycenter)
+#    print("X: "+str(xcenter))
+#    print("Y: "+str(ycenter))
+#    togglepattern3()
 
-def writeZeroFile(xaxis, yaxis):
-    with open(zerofile, 'w') as file:
-        writer = csv.writer(file)
-        writer.writerow([xaxis, yaxis])
+#def writeZeroFile(xaxis, yaxis):
+#    with open(zerofile, 'w') as file:
+#        writer = csv.writer(file)
+#        writer.writerow([xaxis, yaxis])
 
 # map text color names to RGB:
 def colormap(col):
@@ -1184,7 +1260,14 @@ with picamera.PiCamera() as camera:
     camera.resolution = (width, height)
     camera.framerate = 30
     camera.rotation = 180
-    camera.brightness = 60
+    camera.brightness = brightness
+    camera.sharpness = 0 #75
+    camera.contrast = 0
+    camera.saturation = 0 #10
+    # Improve exposure and white balance
+    camera.exposure_mode = 'auto' #'sports'
+    camera.awb_mode = 'auto'
+
     #camera.annotate_foreground = Color('green')
     filename = get_file_name()
     camera.start_recording(filename)
@@ -1269,7 +1352,7 @@ with picamera.PiCamera() as camera:
             if event.value == 1:
                 if event.code == select:
                     print("select")
-                    writeZeroFile(ycenter, xcenter)
+                    saveSettings(configfile)
 #                    camera.annotate_text_size = 135
                     camera.annotate_text = "\nSAVED"
                     camera.annotate_text = "\nSAVED"
