@@ -23,12 +23,128 @@ import threading
 from collections import OrderedDict
 from random import *
 import signal
+import toml
 
-import cv2
-import numpy as np
+data = toml.load("settings.toml")
+index = 0
+stop_thread = False
+selected_option_index = 0
+global alphaValue
+alphaValue = 75
 
-import cv2
-import numpy as np
+def get_option_index(option_name):
+    """Return the index of a given option name within the current setting's options list."""
+    index_key = list(data.keys())[index]  # Get the currently selected setting type
+    
+    # Get the options list
+    options = data[index_key]["options"] if isinstance(data[index_key], dict) and "options" in data[index_key] else []
+
+    # Find the index of the given option (returns -1 if not found)
+    return options.index(option_name) if option_name in options else -1
+
+
+def animatemenu():
+    global alphaValue, selected_option_index, opacity, radius, hairwidth, radius1x, hairwidth1x,radius6x, hairwidth6x, radius10x, hairwidth10x, shotcamvideo, effects, sharpness, saturation, contrast, iso, exposure_mode, awb_mode, brightness
+    index_key = list(data.keys())[index]  # Get the current setting type
+
+    # Get the options list
+    options = data[index_key]["options"] if isinstance(data[index_key], dict) and "options" in data[index_key] else []
+
+    # Set the initial selected_option_index when first entering "opacity"
+    #if index_key == "opacity":
+    #    if alphaValue in options and selected_option_index not in range(len(options)):
+    #        selected_option_index = options.index(alphaValue)  # Set to alphaValue's position
+
+    # Ensure selected_option_index stays within valid bounds
+    #selected_option_index = max(0, min(selected_option_index, len(options) - 1))
+
+    # Get the currently selected option
+    option = str(options[selected_option_index]) if options else "N/A"
+
+    # Apply changes
+    if index_key == "opacity":
+        opacity = int(option)
+        alphaValue = opacity
+        togglepattern3()
+    if index_key == "radius1x":
+        radius = int(option)
+        radius1x = radius
+        togglepattern3()
+    if index_key == "hairwidth1x":
+        hairwidth = int(option)
+        hairwidth1x = hairwidth
+        togglepattern3()
+    if index_key == "radius6x":
+        radius = int(option)
+        radius6x = radius
+        togglepattern3()
+    if index_key == "hairwidth6x":
+        hairwidth = int(option)
+        hairwidth6x = hairwidth
+        togglepattern3()
+    if index_key == "radius10x":
+        radius = int(option)
+        radius10x = radius
+        togglepattern3()
+    if index_key == "hairwidth10x":
+        hairwidth = int(option)
+        hairwidth10x = hairwidth
+        togglepattern3()
+    if index_key == "shotcam":
+        shotcamvideo = str(option)
+    if index_key == "iso":
+        iso = int(option)
+        camera.iso = iso
+    if index_key == "exposure_mode":
+        exposure_mode =  str(option)
+        camera.exposure_mode = exposure_mode
+    if index_key == "awb_mode":
+        awb_mode = str(option)
+        camera.awb_mode = awb_mode
+    if index_key == "brightness":
+        brightness = int(option)
+        camera.brightness = brightness
+    if index_key == "contrast":
+        contrast = int(option)
+        camera.contrast = contrast
+    if index_key == "saturation":
+        saturation = int(option)
+        camera.saturation = saturation
+    if index_key == "sharpness":
+        sharpness = int(option)
+        camera.sharpness = sharpness
+    if index_key == "effects":
+        effects = str(option)
+        camera.image_effect = effects
+    # Format the annotation text
+    annotateString = f'\n\n\n{index_key}\n{option}'
+
+    for x in range(6, 85):
+        camera.annotate_background = Color('black')
+        camera.annotate_text_size = x
+        camera.annotate_text = annotateString.upper()
+
+
+
+
+def menuAnnotate():
+    annotateString = ''
+    if(index > 0):
+        annotateString += "\n"
+        annotateString += list(data.keys())[index-1]
+        annotateString += "\n\n"
+    else:
+        annotateString += "\n\n\n"
+    annotateString += str(list(data.keys())[index]).upper()
+    annotateString += "\n\n"
+
+    if(index+1 < len(list(data.keys()))):
+        annotateString += list(data.keys())[index+1]
+    annotateString += "\n"
+    annotateString += "\n"
+    camera.annotate_text = annotateString
+
+
 
 def pattern1(arr, width, height, x, y, rad, col):
     global hairwidth
@@ -292,7 +408,7 @@ zooms = {
 
     'zoom_wh_min' : 1.0,
     'zoom_wh' : 1.0,
-    'zoom_wh_max' : 0.2
+    'zoom_wh_max' : 0.01
 }
 
 def read_voltage():
@@ -327,7 +443,7 @@ def shotcam():
 
     #).format(xcenter=xcenter, ycenter=ycenter, shotcam_file=shotcam_file, curcol=curcol)
     video_cmd = f"""
-         tail -c 15000000 {filename} > temp.h264 && \
+         tail -c 25000000 {filename} > temp.h264 && \
          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json temp.h264 && \
          ffmpeg -y -fflags +genpts -i temp.h264 -c:v copy temp_fixed.h264 && \
          ffmpeg -y -framerate 30 -i temp_fixed.h264 -c:v copy -movflags +faststart {temp_file}
@@ -375,69 +491,56 @@ def shotcam():
 #        busy = False
 
 def annotate_thread():
-    global curcol, toggleText, toggleStability, busy, process, power_percent, camera, zooms
+    global curcol, toggleText, toggleStability, busy, process, power_percent, camera, zooms, stop_thread
     while True:
+        if(not stop_thread):
+            camera.annotate_background = None
+            bus_voltage = read_voltage()
+            power_percent = (bus_voltage - V_MIN) / (V_MAX - V_MIN) * 100
+            power_percent = max(0, min(100, power_percent))  # Clamp between 0-100%
 
-        #camera.annotate_foreground = Color(curcol)
-        bus_voltage = read_voltage()
-        power_percent = (bus_voltage - V_MIN) / (V_MAX - V_MIN) * 100
-        power_percent = max(0, min(100, power_percent))  # Clamp between 0-100%
+            ACCx = IMU.readACCx()
+            ACCy = IMU.readACCy()
+            ACCz = IMU.readACCz()
+            GYRx = IMU.readGYRx()
+            GYRy = IMU.readGYRy()
+            GYRz = IMU.readGYRz()
 
-        #print("Load Voltage: {:.3f} V".format(bus_voltage))
-        #print("Power Percent: {:.1f}%\n".format(power_percent))
+            time.sleep(.1)
 
+            ACCx2 = IMU.readACCx()
+            ACCy2 = IMU.readACCy()
+            ACCz2 = IMU.readACCz()
 
+            total1 = ACCx + ACCy + ACCz
 
-        ACCx = IMU.readACCx()
-        ACCy = IMU.readACCy()
-        ACCz = IMU.readACCz()
-        GYRx = IMU.readGYRx()
-        GYRy = IMU.readGYRy()
-        GYRz = IMU.readGYRz()
-#        MAGx = IMU.readMAGx()
-#        MAGy = IMU.readMAGy()
-#        MAGz = IMU.readMAGz()
-
-        time.sleep(.1)
-
-        ACCx2 = IMU.readACCx()
-        ACCy2 = IMU.readACCy()
-        ACCz2 = IMU.readACCz()
-
-        total1 = ACCx + ACCy + ACCz
-
-#        MAGx -= (magXmin + magXmax) /2
-#        MAGy -= (magYmin + magYmax) /2
-#        MAGz -= (magZmin + magZmax) /2
+            total2 = ACCx2 + ACCy2 + ACCz2
 
 
-        total2 = ACCx2 + ACCy2 + ACCz2
+            diff = abs(total1-total2)/2
+            if  (diff < 80):
+                stable = "|     |"
+            else:
+                stable = " "
 
-
-        diff = abs(total1-total2)/2
-        if  (diff < 80):
-            stable = "|     |"
-        else:
-            stable = " "
-
-        b = datetime.datetime.now()
-        a = datetime.datetime.now()
-        LP = b.microsecond/(1000000*1.0)
+            b = datetime.datetime.now()
+            a = datetime.datetime.now()
+            LP = b.microsecond/(1000000*1.0)
 
 #Convert Gyro raw to degrees per second
-        rate_gyr_x =  GYRx * G_GAIN
-        rate_gyr_y =  GYRy * G_GAIN
-        rate_gyr_z =  GYRz * G_GAIN
+            rate_gyr_x =  GYRx * G_GAIN
+            rate_gyr_y =  GYRy * G_GAIN
+            rate_gyr_z =  GYRz * G_GAIN
 
-        gyroXangle=0
-        gyroYangle=0
-        gyroZangle=0
+            gyroXangle=0
+            gyroYangle=0
+            gyroZangle=0
 
 
 #Calculate the angles from the gyro. 
-        gyroXangle+=rate_gyr_x*LP
-        gyroYangle+=rate_gyr_y*LP
-        gyroZangle+=rate_gyr_z*LP
+            gyroXangle+=rate_gyr_x*LP
+            gyroYangle+=rate_gyr_y*LP
+            gyroZangle+=rate_gyr_z*LP
 
 #Calculate heading
 #        heading = 180 * math.atan2(MAGy,MAGx)/M_PI
@@ -447,21 +550,21 @@ def annotate_thread():
 #            heading += 360
 
 #Normalize accelerometer raw values.
-        if(math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)==0):
-            print("fuck")
-            accXnorm = 0
-        else:
-            accXnorm = ACCx/math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
-        if(math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)==0):
-            print("you")
-            accYnorm = 0
-        else:
-            accYnorm = ACCy/math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
+            if(math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)==0):
+                print("fuck")
+                accXnorm = 0
+            else:
+                accXnorm = ACCx/math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
+            if(math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)==0):
+                print("you")
+                accYnorm = 0
+            else:
+                accYnorm = ACCy/math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
 #Calculate :pitch and roll
-        try:
-            roll = math.asin(accXnorm)
+            try:
+                roll = math.asin(accXnorm)
     #print "Pitch: "+str(pitch)
-            pitch = -math.asin(accYnorm/math.cos(roll))
+                pitch = -math.asin(accYnorm/math.cos(roll))
     #print "RollL "+str(roll)
     #Calculate the new tilt compensated values
 #            magXcomp = MAGx*math.cos(roll)+MAGz*math.sin(roll)
@@ -469,61 +572,63 @@ def annotate_thread():
 
     #Calculate tilt compensated heading
 #            tiltCompensatedHeading = 180 * math.atan2(magYcomp,magXcomp)/M_PI
-        except ValueError:
-            print("Value Error")
+            except ValueError:
+                print("Value Error")
         #pitchValue = round(pitch, 1)
         #print("PV: "+str(pitchValue))
         #if(pitchValue != 90 and pitchValue != -90 and pitchValue != 180 and pitchValue != -180 and pitchValue !=0):
         #    print("bitch"+str(pitchValue))
         #else:
         #    togglepattern4(pitchValue)
-        togglepattern4(roll)
+            togglepattern4(roll)
         #camera.annotate_text_size = 85
-        try:
+            try:
 #            if(shotcamvideo == "True" or shotcamvideo == "true"):
-            if(process.poll() == 0):
-                busy = False
-            else:
-                busy = True
+                if(process.poll() == 0):
+                    busy = False
+                else:
+                    busy = True
             #else:
             #   busy = False
-        except:
-            pass
-        if(toggleText or toggleStability):
-            camera.annotate_text_size = 85
-            if(toggleText):
+            except:
+                pass
+            if(toggleText or toggleStability):
+                camera.annotate_text_size = 85
+                if(toggleText):
                 # Compute zoom factor as a multiple
-                zoom_factor = 1 / zooms['zoom_wh']
+                    zoom_factor = 1 / zooms['zoom_wh']
 
                 # Round to 1 decimal place for readability
-                zoom_factor = round(zoom_factor, 0)
+                    zoom_factor = int(round(zoom_factor, 0))
 
-                if(busy): # or process.poll() is None):
-                    annotate_text = "X:"+str(xcenter)+"     "+"Zoom:"+str(zoom_factor)+"       Y:"+str(ycenter)+"\nBusy"
+                    if(busy): # or process.poll() is None):
+                        annotate_text = "X:"+str(xcenter)+"     "+"Zoom:"+str(zoom_factor)+"       Y:"+str(ycenter)+"\nBusy"
+                    else:
+                        annotate_text = "X:"+str(xcenter)+"     "+"Zoom:"+str(zoom_factor)+"       Y:"+str(ycenter)+"\n"
                 else:
-                    annotate_text = "X:"+str(xcenter)+"     "+"Zoom:"+str(zoom_factor)+"       Y:"+str(ycenter)+"\n"
-            else:
-                if(busy): #or process.poll() is None):
-                    annotate_text = "\nBusy"
+                    if(busy): #or process.poll() is None):
+                        annotate_text = "\nBusy"
+                    else:
+                        annotate_text = "\n"
+                if(toggleStability):
+                    annotate_text += "\n\n"
+                    annotate_text += stable+"\n"+stable
+                    if(toggleText):
+                        annotate_text += "\n\n\n"
                 else:
-                    annotate_text = "\n"
-            if(toggleStability):
-                annotate_text += "\n\n"
-                annotate_text += stable+"\n"+stable
+                    annotate_text += "\n\n\n\n\n\n"
                 if(toggleText):
-                   annotate_text += "\n\n\n"
-            else:
-                annotate_text += "\n\n\n\n\n\n"
-            if(toggleText):
-                annotate_text += "Pitch:"+str(pitch)[0:5]+"    "+"{:d}%".format(int(power_percent))+"    Roll:"+str(roll)[0:5]
+                    annotate_text += "Pitch:"+str(pitch)[0:5]+"    "+"{:d}%".format(int(power_percent))+"    Roll:"+str(roll)[0:5]
 
-            camera.annotate_text = annotate_text
-        else:
-            camera.annotate_text_size = 85
-            if(busy): #or process.poll() is None):
-                camera.annotate_text = "\nBusy"
+                camera.annotate_text = annotate_text
             else:
-                camera.annotate_text = ""
+                camera.annotate_text_size = 85
+                if(busy): #or process.poll() is None):
+                    camera.annotate_text = "\nBusy"
+                else:
+                    camera.annotate_text = ""
+        else:
+            time.sleep(.25)
 
 def get_file_name_pic():  # new
     return datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S.png")
@@ -553,13 +658,20 @@ def zoom_all_the_way_out():
 
 def update_zoom():
     global roi, zoomcount, xcenter, ycenter, width, height, camera, zooms
+    
+    # Compute zoom factor
+    zoom_factor = 1 / zooms['zoom_wh']
 
-    # Compute normalized (0-1) center coordinates
-    x_norm = xcenter / width
-    y_norm = ycenter / height
+    # Convert `xcenter, ycenter` to normalized (0-1) coordinates
+    if camera.rotation in [90, 270]:
+        x_norm = ycenter / height  # Swap x and y
+        y_norm = 1 - (xcenter / width)  # Flip direction
+    else:
+        x_norm = xcenter / width
+        y_norm = ycenter / height
 
     # Ensure zoom width is within bounds
-    zoom_width = max(zooms['zoom_wh'], 0.2)  # Prevent excessive zoom-out
+    zoom_width = max(zooms['zoom_wh'], 0.01)  # Prevent excessive zoom-out
     zoom_width = min(zoom_width, 1.0)  # Prevent excessive zoom-in
 
     # Calculate half zoom size
@@ -581,7 +693,7 @@ def update_zoom():
         round(zoom_width, 6),
     )
 
-    print(f"Zoom updated: {zoom_width}x, Centered at ({xcenter}, {ycenter})")
+    print(f"Zoom updated: {zoom_factor}x, Centered at ({xcenter}, {ycenter})")
 
 
 #def update_zoom():
@@ -620,22 +732,31 @@ def update_zoom():
 def zoom_in():
     global zoomcount, hairwidth, radius,xcenter
     if zoomcount == 0:
-        target_zoom = 12
-        hairwidth = hairwidth4x
-        radius = radius4x
-        if camera.rotation == 270:
-            xcenter = prevxcenter - 40
-        if camera.rotation == 90:
-            xcenter = prevxcenter + 40
-        togglepattern3()
-    elif zoomcount == 12:
         target_zoom = 14
         hairwidth = hairwidth6x
         radius = radius6x
-        if camera.rotation == 270:
-            xcenter = prevxcenter - 60
-        if camera.rotation == 90:
-            xcenter =prevxcenter + 60
+        #if camera.rotation == 270:
+            #xcenter = prevxcenter - 40
+        #if camera.rotation == 90:
+            #xcenter = prevxcenter + 40
+        togglepattern3()
+#    elif zoomcount == 8:
+#        target_zoom = 14
+#        hairwidth = hairwidth6x
+#        radius = radius6x
+#        if camera.rotation == 270:
+#            xcenter = prevxcenter - 60
+#        if camera.rotation == 90:
+#            xcenter =prevxcenter + 60
+#        togglepattern3()
+    elif zoomcount == 14:
+        target_zoom = 15
+        hairwidth = hairwidth10x
+        radius = radius10x
+        #if camera.rotation == 270:
+        #    xcenter = prevxcenter - 60
+        #if camera.rotation == 90:
+        #    xcenter =prevxcenter + 60
         togglepattern3()
     else:
         return  # Already at max zoom
@@ -650,23 +771,32 @@ def zoom_in():
 
 def zoom_out():
     global zoomcount, hairwidth, radius, xcenter, prevxcenter
-    if zoomcount == 14:
-        target_zoom = 12
-        hairwidth = hairwidth4x
-        radius = radius4x
-        if camera.rotation == 270:
-            xcenter = prevxcenter - 40
-        if camera.rotation == 90:
-            xcenter = prevxcenter + 40
+    if zoomcount == 15:
+        target_zoom = 14
+        hairwidth = hairwidth6x
+        radius = radius6x
+        #if camera.rotation == 270:
+        #    xcenter = prevxcenter - 40
+        #if camera.rotation == 90:
+        #    xcenter = prevxcenter + 40
         togglepattern3()
-    elif zoomcount == 12:
+#    elif zoomcount == 14:
+#        target_zoom = 8
+#        hairwidth = hairwidth4x
+#        radius = radius4x
+#        if camera.rotation == 270:
+#            xcenter = prevxcenter - 40
+#        if camera.rotation == 90:
+#            xcenter = prevxcenter + 40
+        togglepattern3()
+    elif zoomcount == 14:
         target_zoom = 0
         hairwidth = hairwidth1x
         radius = radius1x
-        if camera.rotation == 270:
-            xcenter = prevxcenter - 10
-        if camera.rotation == 90:
-            xcenter = prevxcenter + 10
+        #if camera.rotation == 270:
+        #    xcenter = prevxcenter - 10
+        #if camera.rotation == 90:
+        #    xcenter = prevxcenter + 10
         togglepattern3()
     else:
         return  # Already at min zoom
@@ -697,8 +827,8 @@ def get_file_name_pic():  # new
     return datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S.png")
 
 #gunRange = 30
-global alphaValue
-alphaValue = 75
+#global alphaValue
+#alphaValue = 75
 
 globalCounter = 0
 
@@ -733,19 +863,26 @@ cdefaults = {
             'height': '720',
             'color': 'white',
             'pattern': '5',
+            'iso': '0',
             'opacity': '60',
+            'exposure_mode': 'auto',
+            'awb_mode': 'auto',
             'brightness': '60',
+            'contrast': '20',
+            'saturation': '0',
+            'sharpness': '100',
+            'effects': 'none',
             'radius1x': '100',
             'hairwidth1x': '5',
             'radius4x': '200',
             'hairwidth4x': '15',
             'radius6x': '300',
             'hairwidth6x': '30',
+            'radius10x': '500',
+            'hairwidth10x': '50',
             'xcenter': '640',
             'ycenter': '360',
             'shotcamvideo': 'False'
-            #'leftright': '32767',
-            #'updown': '33023'
             }
 
 # if config file is missing, recreate it with default values:
@@ -754,21 +891,32 @@ def CreateConfigFromDef(fileloc,defaults):
     print("Recreating " + fileloc + " using default settings.")
     config.add_section('main')
     config.add_section('overlay')
+    config.add_section('camera')
     config.set('overlay', 'xcenter', cdefaults.get('xcenter'))
     config.set('overlay', 'ycenter', cdefaults.get('ycenter'))
     config.set('overlay', 'color', cdefaults.get('color'))
     config.set('overlay', 'pattern', cdefaults.get('pattern'))
     config.set('overlay', 'radius1x', cdefaults.get('radius1x'))
-    config.set('overlay', 'radius4x', cdefaults.get('radius4x'))
+#    config.set('overlay', 'radius4x', cdefaults.get('radius4x'))
     config.set('overlay', 'radius6x', cdefaults.get('radius6x'))
+    config.set('overlay', 'radius10x', cdefaults.get('radius10x'))
     config.set('overlay', 'hairwidth1x', cdefaults.get('hairwidth1x'))
-    config.set('overlay', 'hairwidth4x', cdefaults.get('hairwidth4x'))
+#    config.set('overlay', 'hairwidth4x', cdefaults.get('hairwidth4x'))
     config.set('overlay', 'hairwidth6x', cdefaults.get('hairwidth6x'))
+    config.set('overlay', 'hairwidth10x', cdefaults.get('hairwidth10x'))
     config.set('overlay', 'shotcamvideo', cdefaults.get('shotcamvideo'))
     config.set('overlay', 'opacity', cdefaults.get('opacity'))
-    config.set('overlay', 'brightness', cdefaults.get('brightness'))
     config.set('main', 'width', cdefaults.get('width'))
     config.set('main', 'height', cdefaults.get('height'))
+    config.set('camera', 'iso', cdefaults.get('iso'))
+    config.set('camera', 'exposure_mode', cdefaults.get('exposure_mode'))
+    config.set('camera', 'awb_mode', cdefaults.get('awb_mode'))
+    config.set('camera', 'brightness', cdefaults.get('brightness'))
+    config.set('camera', 'contrast', cdefaults.get('contrast'))
+    config.set('camera', 'saturation', cdefaults.get('saturation'))
+    config.set('camera', 'sharpness', cdefaults.get('sharpness'))
+    config.set('camera', 'effects', cdefaults.get('effects'))
+
     # write default settings to new config file:
     with open(fileloc, 'w') as f:
         config.write(f)
@@ -788,22 +936,35 @@ def saveSettings(fileloc):
     if not config.has_section('overlay'):
         config.add_section('overlay')
 
+    if not config.has_section('camera'):
+        config.add_section('camera')
+
     # Set values
     config.set('overlay', 'xcenter', str(xcenter))
     config.set('overlay', 'ycenter', str(ycenter))
     config.set('overlay', 'color', str(curcol))
     config.set('overlay', 'pattern', str(curpat2))
     config.set('overlay', 'radius1x', str(radius1x))
-    config.set('overlay', 'radius4x', str(radius4x))
+#    config.set('overlay', 'radius4x', str(radius4x))
     config.set('overlay', 'radius6x', str(radius6x))
+    config.set('overlay', 'radius10x', str(radius10x))
     config.set('overlay', 'hairwidth1x', str(hairwidth1x))
-    config.set('overlay', 'hairwidth4x', str(hairwidth4x))
+#    config.set('overlay', 'hairwidth4x', str(hairwidth4x))
     config.set('overlay', 'hairwidth6x', str(hairwidth6x))
+    config.set('overlay', 'hairwidth10x', str(hairwidth10x))
     config.set('overlay', 'shotcamvideo', str(shotcamvideo))
     config.set('overlay', 'opacity', str(opacity))
-    config.set('overlay', 'brightness', str(brightness))
     config.set('main', 'width', str(width))
     config.set('main', 'height', str(height))
+    config.set('camera', 'iso', str(iso))
+    config.set('camera', 'exposure_mode', str(exposure_mode))
+    config.set('camera', 'awb_mode', str(awb_mode))
+    config.set('camera', 'brightness', str(brightness))
+    config.set('camera', 'contrast', str(contrast))
+    config.set('camera', 'saturation', str(saturation))
+    config.set('camera', 'sharpness', str(sharpness))
+    config.set('camera', 'effects', str(effects))
+
 
     # Remove old file before writing a new one
     if os.path.exists(fileloc):
@@ -868,15 +1029,27 @@ curpat2 = int(config.get('overlay', 'pattern'))
 xcenter = int(config.get('overlay', 'xcenter'))
 ycenter = int(config.get('overlay', 'ycenter'))
 radius1x = int(config.get('overlay', 'radius1x'))
-radius4x = int(config.get('overlay', 'radius4x'))
+#radius4x = int(config.get('overlay', 'radius4x'))
 radius6x = int(config.get('overlay', 'radius6x'))
+radius10x = int(config.get('overlay', 'radius10x'))
+
 opacity = int(config.get('overlay', 'opacity'))
-brightness = int(config.get('overlay', 'brightness'))
 alphaValue = opacity
 hairwidth1x = int(config.get('overlay', 'hairwidth1x'))
-hairwidth4x = int(config.get('overlay', 'hairwidth4x'))
+#hairwidth4x = int(config.get('overlay', 'hairwidth4x'))
 hairwidth6x = int(config.get('overlay', 'hairwidth6x'))
+hairwidth10x = int(config.get('overlay', 'hairwidth10x'))
 shotcamvideo = str(config.get('overlay', 'shotcamvideo'))
+
+iso = int(config.get('camera', 'iso'))
+exposure_mode = str(config.get('camera', 'exposure_mode'))
+awb_mode = str(config.get('camera', 'awb_mode'))
+brightness = int(config.get('camera', 'brightness'))
+contrast = int(config.get('camera', 'contrast'))
+saturation = int(config.get('camera', 'saturation'))
+sharpness = int(config.get('camera', 'sharpness'))
+effects = str(config.get('camera', 'effects'))
+
 print("shotcamvideo: "+shotcamvideo)
 #leftright = int(config.get('overlay', 'leftright'))
 #updown = int(config.get('overlay', 'updown'))
@@ -966,33 +1139,47 @@ def togglepattern4(roll):
     if(roll < -1 and roll >= -1.5 and camera.rotation != 90):
         print("left")
         camera.rotation = 90
+        # Get the new resolution
+        new_resolution = camera.resolution
+        print("New Resolution:", new_resolution)
+        update_zoom()
+#        print("Resolution: "+str(camera.resolution[0],camera.resolution[1])
+        #camera.resolution = (1280, 720)
 #        time.sleep(0.5)
-        if zoomcount == 0:
-            xcenter += 10
-        elif zoomcount == 12:
-            xcenter += 40
-        else:
-            xcenter += 60
+#        if zoomcount == 0:
+#            xcenter += 10
+#        elif zoomcount == 11:
+#            xcenter += 40
+#        else:
+#            xcenter += 60
 #        update_zoom()
 #        togglepattern3()
 #        camera.resolution = (camera.resolution[0], camera.resolution[1])  # Reapply resolution
     elif(roll > 1 and roll <= 1.5 and camera.rotation != 270):
         print("right")
         camera.rotation = 270
+        # Get the new resolution
+        new_resolution = camera.resolution
+        print("New Resolution:", new_resolution)
+        update_zoom()
+#        print("Resolution: "+str(camera.resolution)
+        #camera.resolution = (1280, 720)
 #        time.sleep(0.5)
 
-        if zoomcount == 0:
-            xcenter -= 10
-        elif zoomcount == 12:
-            xcenter -= 40
-        else:
-            xcenter -= 60
+#        if zoomcount == 0:
+#            xcenter -= 10
+#        elif zoomcount == 11:
+#            xcenter -= 40
+#        else:
+#            xcenter -= 60
 
 #        update_zoom()
 #        togglepattern3()
 #        camera.resolution = (camera.resolution[0], camera.resolution[1])  # Reapply resolution
     elif(roll >= -1 and roll <= 1 and camera.rotation != 180):
         camera.rotation = 180
+        #camera.resolution = (1280, 720)
+        #camera.rotation = 180
 #        time.sleep(0.5)
         print("normal")
         xcenter = prevxcenter
@@ -1260,10 +1447,14 @@ with picamera.PiCamera() as camera:
     camera.resolution = (width, height)
     camera.framerate = 30
     camera.rotation = 180
+    camera.iso = iso
+    camera.exposure_mode = exposure_mode
+    camera.awb_mode = awb_mode
     camera.brightness = brightness
-    camera.sharpness = 0 #75
-    camera.contrast = 0
-    camera.saturation = 0 #10
+    camera.sharpness = sharpness
+    camera.contrast = contrast
+    camera.saturation = saturation
+    camera.image_effect = effects
     # Improve exposure and white balance
     camera.exposure_mode = 'auto' #'sports'
     camera.awb_mode = 'auto'
@@ -1285,28 +1476,264 @@ with picamera.PiCamera() as camera:
                 absevent = categorize(event) 
                 if ecodes.bytype[absevent.event.type][absevent.event.code] == 'ABS_X':
                     print(absevent.event.value)
-                    if(absevent.event.value > 65000 and camera.rotation == 180):
-                       print("right")
-                       xcenter = xcenter +5
-                       prevxcenter = xcenter
-                       togglepattern3()
+                    if(absevent.event.value > 65000 and camera.rotation == 180 and stop_thread):
+                        print("Right - Next Option")
+                        selected_option_index += 1  # Move to next option
+                        # Ensure index wraps around valid range
+                        options = data[list(data.keys())[index]]["options"]
+                        selected_option_index = max(0, min(selected_option_index, len(options) - 1))
+                        animatemenu()
+                    elif(absevent.event.value > 65000 and camera.rotation == 180):
+                        print("right")
+                        xcenter = xcenter +5
+                        prevxcenter = xcenter
+                        togglepattern3()
+                    elif (absevent.event.value < 500 and camera.rotation == 180 and stop_thread):
+                        print("Left - Previous Option")
+                        selected_option_index -= 1  # Move to previous option
+                        # Ensure index wraps around valid range
+                        options = data[list(data.keys())[index]]["options"]
+                        selected_option_index = max(0, min(selected_option_index, len(options) - 1))
+                        animatemenu()
                     elif (absevent.event.value < 500 and camera.rotation == 180):
-                       print("left")
-                       xcenter = xcenter -5
-                       prevxcenter = xcenter
-                       togglepattern3()
+                        print("left")
+                        xcenter = xcenter -5
+                        prevxcenter = xcenter
+                        togglepattern3()
+                        # Ensure index wraps around valid range
+                        #options = data[list(data.keys())[index]]["options"]
+                        #selected_option_index = max(0, min(selected_option_index, len(options) - 1))
+                        #animatemenu()
+
+
                 if ecodes.bytype[absevent.event.type][absevent.event.code] == 'ABS_Y':
                     print(absevent.event.value)
-                    if(absevent.event.value > 65000 and camera.rotation == 180):
+                    if(absevent.event.value > 65000 and camera.rotation == 180 and stop_thread):
+                        print("down")
+                        selected_option_index = 0
+                        if(index < len(list(data.keys()))-1):
+                            index += 1
+                        else:
+                            index = 0
+
+                        # Preselect the correct index for `radius1x` when switching to "radius1x"
+                        if list(data.keys())[index] == "radius1x":
+                            options = data["radius1x"]["options"]
+                            if radius1x in options:
+                                selected_option_index = options.index(radius1x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius1x` when switching to "radius1x"
+                        if list(data.keys())[index] == "hairwidth1x":
+                            options = data["hairwidth1x"]["options"]
+                            if hairwidth1x in options:
+                                selected_option_index = options.index(hairwidth1x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+
+
+                        # Preselect the correct index for `radius6x` when switching to "radius6x"
+                        if list(data.keys())[index] == "radius6x":
+                            options = data["radius6x"]["options"]
+                            if radius6x in options:
+                                selected_option_index = options.index(radius6x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius6x` when switching to "radius6x"
+                        if list(data.keys())[index] == "hairwidth6x":
+                            options = data["hairwidth6x"]["options"]
+                            if hairwidth6x in options:
+                                selected_option_index = options.index(hairwidth6x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+
+
+
+                        # Preselect the correct index for `radius10x` when switching to "radius10x"
+                        if list(data.keys())[index] == "radius10x":
+                            options = data["radius10x"]["options"]
+                            if radius10x in options:
+                                selected_option_index = options.index(radius10x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius10x` when switching to "radius10x"
+                        if list(data.keys())[index] == "hairwidth10x":
+                            options = data["hairwidth10x"]["options"]
+                            if hairwidth10x in options:
+                                selected_option_index = options.index(hairwidth10x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for `iso` when switching to "iso"
+                        if list(data.keys())[index] == "shotcam":
+                            options = data["shotcam"]["options"]
+                            if shotcamvideo in options:
+                                selected_option_index = options.index(shotcamvideo)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+
+
+                        # Preselect the correct index for `iso` when switching to "iso"
+                        if list(data.keys())[index] == "iso":
+                            options = data["iso"]["options"]
+                            if camera.iso in options:
+                                selected_option_index = options.index(camera.iso)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `alphaValue` when switching to "opacity"
+                        if list(data.keys())[index] == "opacity":
+                            options = data["opacity"]["options"]
+                            if alphaValue in options:
+                                selected_option_index = options.index(opacity)
+                                print("OPACITY:"+str(opacity))
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `brightness` when switching to "brightness"
+                        if list(data.keys())[index] == "brightness":
+                            options = data["brightness"]["options"]
+                            if brightness in options:
+                                selected_option_index = options.index(brightness)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for 'contrast' when switching to "contrast"
+                        if list(data.keys())[index] == "contrast":
+                            options = data["contrast"]["options"]
+                            if camera.contrast in options:
+                                selected_option_index = options.index(camera.contrast)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for 'saturation' when switching to "saturation"
+                        if list(data.keys())[index] == "saturation":
+                            options = data["saturation"]["options"]
+                            if camera.saturation in options:
+                                selected_option_index = options.index(camera.saturation)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for 'sharpness' when switching to "sharpness"
+                        if list(data.keys())[index] == "sharpness":
+                            options = data["sharpness"]["options"]
+                            if camera.sharpness in options:
+                                selected_option_index = options.index(camera.sharpness)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for 'effects' when switching to "effects"
+                        if list(data.keys())[index] == "effects":
+                            options = data["effects"]["options"]
+                            if camera.image_effect in options:
+                                selected_option_index = options.index(camera.image_effect)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+
+                        # Preselect the correct index for 'exposure_mode' when switching to "exposure_mode"
+                        if list(data.keys())[index] == "exposure_mode":
+                            options = data["exposure_mode"]["options"]
+                            if camera.exposure_mode in options:
+                                selected_option_index = options.index(camera.exposure_mode)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for 'awb_mode' when switching to "awb_mode"
+                        if list(data.keys())[index] == "awb_mode":
+                            options = data["awb_mode"]["options"]
+                            if camera.awb_mode in options:
+                                selected_option_index = options.index(camera.awb_mode)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        animatemenu()
+                    elif(absevent.event.value > 65000 and camera.rotation == 180):
                         print("down")
                         ycenter = ycenter +5
                         togglepattern3()
+                    elif (absevent.event.value < 500 and camera.rotation == 180 and stop_thread):
+                        print("up")
+                        selected_option_index = 0
+                        if(index > 0):
+                            index -= 1
+                        else:
+                            index = len(list(data.keys()))-1
+                        # Preselect the correct index for `iso` when switching to "iso"
+                        if list(data.keys())[index] == "iso":
+                            options = data["iso"]["options"]
+                            if camera.iso in options:
+                                selected_option_index = options.index(camera.iso)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `alphaValue` when switching to "opacity"
+                        if list(data.keys())[index] == "opacity":
+                            options = data["opacity"]["options"]
+                            if alphaValue in options:
+                                selected_option_index = options.index(opacity)
+                                print("OPACITY:"+str(opacity))
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `brightness` when switching to "brightness"
+                        if list(data.keys())[index] == "brightness":
+                            options = data["brightness"]["options"]
+                            if brightness in options:
+                                selected_option_index = options.index(brightness)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for 'contrast' when switching to "contrast"
+                        if list(data.keys())[index] == "contrast":
+                            options = data["contrast"]["options"]
+                            if camera.contrast in options:
+                                selected_option_index = options.index(camera.contrast)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for 'saturation' when switching to "saturation"
+                        if list(data.keys())[index] == "saturation":
+                            options = data["saturation"]["options"]
+                            if camera.saturation in options:
+                                selected_option_index = options.index(camera.saturation)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for 'sharpness' when switching to "sharpness"
+                        if list(data.keys())[index] == "sharpness":
+                            options = data["sharpness"]["options"]
+                            if camera.sharpness in options:
+                                selected_option_index = options.index(camera.sharpness)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for 'effects' when switching to "effects"
+                        if list(data.keys())[index] == "effects":
+                            options = data["effects"]["options"]
+                            if camera.image_effect in options:
+                                selected_option_index = options.index(camera.image_effect)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+
+                        # Preselect the correct index for 'exposure_mode' when switching to "exposure_mode"
+                        if list(data.keys())[index] == "exposure_mode":
+                            options = data["exposure_mode"]["options"]
+                            if camera.exposure_mode in options:
+                                selected_option_index = options.index(camera.exposure_mode)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for 'awb_mode' when switching to "awb_mode"
+                        if list(data.keys())[index] == "awb_mode":
+                            options = data["awb_mode"]["options"]
+                            if camera.awb_mode in options:
+                                selected_option_index = options.index(camera.awb_mode)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        animatemenu()
                     elif (absevent.event.value < 500 and camera.rotation == 180):
                         print("up")
                         ycenter = ycenter -5
                         togglepattern3()
 
-
+            if event.value == 0:
+                prevhold = None
 
 
             #if(prevhold != event.code):
@@ -1324,6 +1751,8 @@ with picamera.PiCamera() as camera:
                     togglepattern(curpat2+1)
                 if event.code == aBtn:
                     print("A")
+                    stop_thread = False
+                    camera.annotate_text = ""
                     toggleText = not(toggleText)
                     #for single battery readings
                     #bus_voltage = read_voltage()
@@ -1340,8 +1769,14 @@ with picamera.PiCamera() as camera:
             if event.value == 2:
                 if event.code == yBtn:
                     print("hY")
-                if event.code == aBtn:
+                if event.code == aBtn and prevhold != event.code:
                     print("hA")
+                    #here
+                    toggleText = False
+                    toggleStability = False
+                    stop_thread = True
+                    animatemenu()
+                    prevhold = event.code
                 if event.code == bBtn:
                     print("hB")
                 if event.code == xBtn:
@@ -1379,7 +1814,7 @@ with picamera.PiCamera() as camera:
                     print("hleft bumper")
                     zoom_out()
                     #togglepattern3()
-                if event.code == rTrig and zoomcount < 14:
+                if event.code == rTrig and zoomcount < 15:
                     print("hright bumper")
                     zoom_in()
                     #togglepattern3()
