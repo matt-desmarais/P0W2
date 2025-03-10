@@ -1548,9 +1548,6 @@ with picamera.PiCamera() as camera:
                             else:
                                 selected_option_index = 0  # Default if not found
 
-
-
-
                         # Preselect the correct index for `radius10x` when switching to "radius10x"
                         if list(data.keys())[index] == "radius10x":
                             options = data["radius10x"]["options"]
@@ -1670,6 +1667,49 @@ with picamera.PiCamera() as camera:
                             if alphaValue in options:
                                 selected_option_index = options.index(opacity)
                                 print("OPACITY:"+str(opacity))
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius1x` when switching to "radius1x"
+                        if list(data.keys())[index] == "radius1x":
+                            options = data["radius1x"]["options"]
+                            if radius1x in options:
+                                selected_option_index = options.index(radius1x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius1x` when switching to "radius1x"
+                        if list(data.keys())[index] == "hairwidth1x":
+                            options = data["hairwidth1x"]["options"]
+                            if hairwidth1x in options:
+                                selected_option_index = options.index(hairwidth1x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius6x` when switching to "radius6x"
+                        if list(data.keys())[index] == "radius6x":
+                            options = data["radius6x"]["options"]
+                            if radius6x in options:
+                                selected_option_index = options.index(radius6x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius6x` when switching to "radius6x"
+                        if list(data.keys())[index] == "hairwidth6x":
+                            options = data["hairwidth6x"]["options"]
+                            if hairwidth6x in options:
+                                selected_option_index = options.index(hairwidth6x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+
+                        # Preselect the correct index for `radius10x` when switching to "radius10x"
+                        if list(data.keys())[index] == "radius10x":
+                            options = data["radius10x"]["options"]
+                            if radius10x in options:
+                                selected_option_index = options.index(radius10x)
+                            else:
+                                selected_option_index = 0  # Default if not found
+                        # Preselect the correct index for `radius10x` when switching to "radius10x"
+                        if list(data.keys())[index] == "hairwidth10x":
+                            options = data["hairwidth10x"]["options"]
+                            if hairwidth10x in options:
+                                selected_option_index = options.index(hairwidth10x)
                             else:
                                 selected_option_index = 0  # Default if not found
                         # Preselect the correct index for `brightness` when switching to "brightness"
