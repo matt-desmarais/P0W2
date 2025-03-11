@@ -67,7 +67,8 @@ This project uses the **8BitDo Zero 2 Bluetooth Gamepad** for control.
 | **Left Trigger** | Zoom **Out** |
 | **Right Trigger** | Zoom **In** |
 | **Start Button** | Takes a **screenshot** |
-| **Hold X Button** | Captures **shotcam video** |
+| **Hold Start Button** | Captures **shotcam video** |
+| **Hold A Button** | Enter **Settings** |
 
 ## Configuration
 Modify the **crosshair.cfg** file (`/boot/crosshair.cfg`) to change settings:
@@ -81,14 +82,24 @@ xcenter = 640
 ycenter = 360
 color = white
 pattern = 5
-radius1x = 60
-radius4x = 240
-radius6x = 360
+radius1x = 100
+radius6x = 300
+radius10x = 500
 hairwidth1x = 5
-hairwidth4x = 20
 hairwidth6x = 30
-leftright = 32767
-updown = 33023
+hairwidth10x = 50
+shotcamvideo = False
+opacity = 60
+
+[camera]
+iso = 0
+exposure_mode = auto
+awb_mode = auto
+brightness = 60
+contrast = 20
+saturation = 0
+sharpness = 100
+effects = none
 ```
 
 ## License
