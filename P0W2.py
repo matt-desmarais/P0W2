@@ -433,22 +433,23 @@ def shotcam():
     shotcam_cmd = f"""
         tail -c 25000000 {filename} > /dev/shm/temp.h264 && \
         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json /dev/shm/temp.h264 && \
-        ffmpeg -y -fflags +genpts -i /dev/shm/temp.h264 -c:v copy -movflags +faststart /dev/shm/temp_fixed.h264 && \
-        ffmpeg -y -sseof -10.5 -i /dev/shm/temp_fixed.h264 -c:v copy /dev/shm/trimmed.mp4 && \
+        ffmpeg -y -fflags +genpts -i /dev/shm/temp.h264 -c:v copy -movflags +faststart /dev/shm/temp_fixed.mp4 && \
+        ffmpeg -y -sseof -10.5 -i /dev/shm/temp_fixed.mp4 -c:v copy /dev/shm/trimmed.mp4 && \
         ffmpeg -i /dev/shm/trimmed.mp4 \
         -vf "drawbox=x={xcenter}:y=0:w=2:h=720:color={curcol}@0.8:t=fill, \
              drawbox=x=0:y={ycenter}:w=1280:h=2:color={curcol}@0.8:t=fill" \
         -c:v h264_v4l2m2m -b:v 1M -preset ultrafast -c:a copy "{shotcam_file}" && \
-        rm /dev/shm/temp.h264 /dev/shm/temp_fixed.h264 /dev/shm/trimmed.mp4
+        rm /dev/shm/temp.h264 /dev/shm/temp_fixed.mp4 /dev/shm/trimmed.mp4
     """
 
 
     #).format(xcenter=xcenter, ycenter=ycenter, shotcam_file=shotcam_file, curcol=curcol)
     video_cmd = f"""
-         tail -c 25000000 {filename} > temp.h264 && \
-         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json temp.h264 && \
-         ffmpeg -y -fflags +genpts -i temp.h264 -c:v copy temp_fixed.h264 && \
-         ffmpeg -y -framerate 30 -i temp_fixed.h264 -c:v copy -movflags +faststart {temp_file}
+        tail -c 25000000 {filename} > /dev/shm/temp.h264 && \
+        ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json /dev/shm/temp.h264 && \
+        ffmpeg -y -fflags +genpts -i /dev/shm/temp.h264 -c:v copy -movflags +faststart /dev/shm/temp_fixed.mp4 && \
+        ffmpeg -y -i /dev/shm/temp_fixed.mp4 -c:v copy {temp_file} && \
+        rm /dev/shm/temp.h264 /dev/shm/temp_fixed.mp4
         """
 #    )
 #    print("🔹 Trimming last 15MB from video file...")
