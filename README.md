@@ -2,6 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+You can find the customizable 3D model for the P0W2 HUD Scope Case on MakerWorld:  
+[Check out the model on MakerWorld](https://makerworld.com/en/models/1169642-p0w2-hud-scope-case)
+
 ## Overview
 This project is a **digital scope system for a Nerf blaster**, designed using a **Raspberry Pi Zero 2**, **PiCamera**, **BerryIMU**, and a **Vufine display**. It provides a **real-time heads-up display (HUD)** with **crosshairs, reticle overlays, and motion tracking** for enhanced targeting and recording capabilities.
 
