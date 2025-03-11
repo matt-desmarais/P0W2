@@ -17,7 +17,7 @@ echo 'KERNEL=="event*", ATTRS{name}=="Pro Controller", SYMLINK+="input/by-id/Gam
 
 # Modify boot config
 echo "Updating /boot/config.txt..."
-echo -e "framebuffer_width=640\nframebuffer_height=480\nover_voltage=4\narm_freq=1300\ncore_freq=500\ndtoverlay=dwc2" | sudo tee -a /boot/config.txt
+echo -e "gpu_mem=128\nframebuffer_width=640\nframebuffer_height=480\nover_voltage=4\narm_freq=1300\ncore_freq=500\ndtoverlay=dwc2" | sudo tee -a /boot/config.txt
 
 # Modify /boot/cmdline.txt
 echo "Updating /boot/cmdline.txt..."
