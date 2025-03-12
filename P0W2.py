@@ -335,7 +335,7 @@ global camera
 camera = None
 
 global toggleText
-toggleText = False
+toggleText = True
 
 global toggleStability
 toggleStability = False
@@ -505,18 +505,17 @@ LPF_ALPHA = 0.65
 # Complementary filter weight (higher favors gyro, lower favors accel)
 COMP_ALPHA = 0.98
 
-# Initialize previous roll and timestamp
-prev_roll = 0.0
 prev_time = time.time()
-
-# Initialize previous roll and timestamp
 prev_roll = 0.0
 prev_pitch = 0.0
 
 
 
+
+
 def annotate_thread():
-    global curcol, toggleText, toggleStability, busy, process, power_percent, camera, zooms, stop_thread, prev_roll, prev_pitch
+    global curcol, toggleText, toggleStability, busy, process, power_percent, camera, zooms, stop_thread, prev_roll, prev_pitch, prev_time
+    time.sleep(2)
     while True:
         if not stop_thread:
             camera.annotate_background = None
@@ -531,7 +530,7 @@ def annotate_thread():
             GYRy = IMU.readGYRy()
             GYRz = IMU.readGYRz()
 
-            time.sleep(.1)
+            time.sleep(.05)  # Reduce sleep time for faster updates
 
             ACCx2 = IMU.readACCx()
             ACCy2 = IMU.readACCy()
@@ -552,14 +551,12 @@ def annotate_thread():
             rate_gyr_y = GYRy * G_GAIN
             rate_gyr_z = GYRz * G_GAIN
 
-            gyroXangle = 0
-            gyroYangle = 0
-            gyroZangle = 0
+            # Time delta for gyro integration
+            current_time = time.time()
+            dt = current_time - prev_time
+            prev_time = current_time
 
-            # Calculate the angles from the gyro.
-            gyroXangle += rate_gyr_x * LP
-            gyroYangle += rate_gyr_y * LP
-            gyroZangle += rate_gyr_z * LP
+            gyroXangle = prev_roll + (rate_gyr_x * dt)
 
             # Normalize accelerometer raw values.
             acc_magnitude = math.sqrt(ACCx**2 + ACCy**2 + ACCz**2)
@@ -571,22 +568,36 @@ def annotate_thread():
 
             # **Original Roll & Pitch Calculations (Unchanged)**
             try:
-                roll = math.asin(accXnorm)  # Roll remains based on X
-                pitch = -math.asin(accYnorm / math.cos(roll))  # Pitch remains based on Y
+                roll = math.asin(accXnorm)  # **Roll stays based on X-axis**
+                pitch = -math.asin(accYnorm / math.cos(roll))  # **Pitch stays based on Y-axis**
             except ValueError:
-                roll = prev_roll  # Keep last valid roll on error
+                roll = prev_roll  # Use last valid roll if error
 
-            # **Apply Low-Pass Filtering to Roll & Pitch**
-            roll_filtered = (LPF_ALPHA * roll) + ((1 - LPF_ALPHA) * prev_roll)
-            pitch_filtered = (LPF_ALPHA * pitch) + ((1 - LPF_ALPHA) * prev_pitch)
+            # **Prevent Filtering from Pulling Roll Away from ±1.5**
+            if abs(roll) > 1.3:  
+                adaptive_alpha = 0.8  # Near max tilt, allow fast response
+            elif abs(roll) > 1.0:  
+                adaptive_alpha = 0.5  # Mid-range tilt, moderate filtering
+            else:
+                adaptive_alpha = LPF_ALPHA  # Default smoothing for small tilts
+
+            roll_filtered = (adaptive_alpha * roll) + ((1 - adaptive_alpha) * prev_roll)
+
+            # **Keep Roll at ±1.5 if Close to the Limit**
+            if abs(roll_filtered) > 1.4 and abs(prev_roll) > 1.4:
+                roll_filtered = prev_roll  # Lock value to prevent drift
 
             # **Maintain Rolling Average Buffer**
             roll_buffer.append(roll_filtered)
-            roll_final = sum(roll_buffer) / len(roll_buffer)  # Rolling average
+            roll_final = sum(roll_buffer) / len(roll_buffer)  # Rolling avg
+
+            # **Clip roll to prevent small fluctuations from pulling it below ±1.5**
+            if abs(roll_final) > 1.4:
+                roll_final = 1.5 if roll_final > 0 else -1.5
 
             # Store previous values
             prev_roll = roll_final
-            prev_pitch = pitch_filtered
+            prev_pitch = pitch
 
             togglepattern4(roll_final)
 
@@ -619,14 +630,14 @@ def annotate_thread():
                     annotate_text += "\n\n\n\n\n\n"
 
                 if toggleText:
-                    annotate_text += f"Pitch:{pitch_filtered:.2f}    {int(power_percent)}%    Roll:{roll_final:.2f}"
+                    annotate_text += f"Pitch:{pitch:.2f}    {int(power_percent)}%    Roll:{roll_final:.2f}"
 
                 camera.annotate_text = annotate_text
             else:
                 camera.annotate_text_size = 85
                 camera.annotate_text = "\nBusy" if busy else ""
         else:
-            time.sleep(.25)
+            time.sleep(.15)  # Reduce sleep time for quicker response
 
 
 
@@ -1178,7 +1189,7 @@ def togglepattern4(roll):
 #        update_zoom()
 #        togglepattern3()
 #        camera.resolution = (camera.resolution[0], camera.resolution[1])  # Reapply resolution
-    elif(roll >= -1 and roll <= 1 and camera.rotation != 180):
+    elif(roll >= -.25 and roll <= .25 and camera.rotation != 180):
         camera.rotation = 180
         #camera.resolution = (1280, 720)
         #camera.rotation = 180
@@ -1460,7 +1471,6 @@ with picamera.PiCamera() as camera:
     # Improve exposure and white balance
     camera.exposure_mode = 'auto' #'sports'
     camera.awb_mode = 'auto'
-
     #camera.annotate_foreground = Color('green')
     filename = get_file_name()
     camera.start_recording(filename)
@@ -1468,6 +1478,7 @@ with picamera.PiCamera() as camera:
     camera.preview_fullscreen = 1
     camera.start_preview()
     togglepattern(curpat2)
+    time.sleep(1)
     try:
         t1 = threading.Thread(target=annotate_thread, name='t1')
         t1.start()
