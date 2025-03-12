@@ -1,3 +1,4 @@
+from collections import deque
 import sys
 import io
 import threading
@@ -494,10 +495,30 @@ def shotcam():
 #        pass
 #        busy = False
 
+# Rolling buffer for smoothing roll values
+ROLL_BUFFER_SIZE = 3
+roll_buffer = deque(maxlen=ROLL_BUFFER_SIZE)
+
+# Low-pass filter constant (between 0.01 - 0.1 for vibration reduction)
+LPF_ALPHA = 0.65
+
+# Complementary filter weight (higher favors gyro, lower favors accel)
+COMP_ALPHA = 0.98
+
+# Initialize previous roll and timestamp
+prev_roll = 0.0
+prev_time = time.time()
+
+# Initialize previous roll and timestamp
+prev_roll = 0.0
+prev_pitch = 0.0
+
+
+
 def annotate_thread():
-    global curcol, toggleText, toggleStability, busy, process, power_percent, camera, zooms, stop_thread
+    global curcol, toggleText, toggleStability, busy, process, power_percent, camera, zooms, stop_thread, prev_roll, prev_pitch
     while True:
-        if(not stop_thread):
+        if not stop_thread:
             camera.annotate_background = None
             bus_voltage = read_voltage()
             power_percent = (bus_voltage - V_MIN) / (V_MAX - V_MIN) * 100
@@ -517,122 +538,99 @@ def annotate_thread():
             ACCz2 = IMU.readACCz()
 
             total1 = ACCx + ACCy + ACCz
-
             total2 = ACCx2 + ACCy2 + ACCz2
 
-
-            diff = abs(total1-total2)/2
-            if  (diff < 80):
-                stable = "|     |"
-            else:
-                stable = " "
+            diff = abs(total1 - total2) / 2
+            stable = "|     |" if diff < 80 else " "
 
             b = datetime.datetime.now()
             a = datetime.datetime.now()
-            LP = b.microsecond/(1000000*1.0)
+            LP = b.microsecond / (1000000 * 1.0)
 
-#Convert Gyro raw to degrees per second
-            rate_gyr_x =  GYRx * G_GAIN
-            rate_gyr_y =  GYRy * G_GAIN
-            rate_gyr_z =  GYRz * G_GAIN
+            # Convert Gyro raw to degrees per second
+            rate_gyr_x = GYRx * G_GAIN
+            rate_gyr_y = GYRy * G_GAIN
+            rate_gyr_z = GYRz * G_GAIN
 
-            gyroXangle=0
-            gyroYangle=0
-            gyroZangle=0
+            gyroXangle = 0
+            gyroYangle = 0
+            gyroZangle = 0
 
+            # Calculate the angles from the gyro.
+            gyroXangle += rate_gyr_x * LP
+            gyroYangle += rate_gyr_y * LP
+            gyroZangle += rate_gyr_z * LP
 
-#Calculate the angles from the gyro. 
-            gyroXangle+=rate_gyr_x*LP
-            gyroYangle+=rate_gyr_y*LP
-            gyroZangle+=rate_gyr_z*LP
-
-#Calculate heading
-#        heading = 180 * math.atan2(MAGy,MAGx)/M_PI
-
-#Only have our heading between 0 and 360
-#        if heading < 0:
-#            heading += 360
-
-#Normalize accelerometer raw values.
-            if(math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)==0):
-                print("fuck")
-                accXnorm = 0
+            # Normalize accelerometer raw values.
+            acc_magnitude = math.sqrt(ACCx**2 + ACCy**2 + ACCz**2)
+            if acc_magnitude == 0:
+                accXnorm = accYnorm = 0
             else:
-                accXnorm = ACCx/math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
-            if(math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)==0):
-                print("you")
-                accYnorm = 0
-            else:
-                accYnorm = ACCy/math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
-#Calculate :pitch and roll
+                accXnorm = ACCx / acc_magnitude
+                accYnorm = ACCy / acc_magnitude
+
+            # **Original Roll & Pitch Calculations (Unchanged)**
             try:
-                roll = math.asin(accXnorm)
-    #print "Pitch: "+str(pitch)
-                pitch = -math.asin(accYnorm/math.cos(roll))
-    #print "RollL "+str(roll)
-    #Calculate the new tilt compensated values
-#            magXcomp = MAGx*math.cos(roll)+MAGz*math.sin(roll)
-#            magYcomp = MAGx*math.sin(pitch)*math.sin(roll)+MAGy*math.cos(pitch)-MAGz*math.sin(pitch)*math.cos(roll)
-
-    #Calculate tilt compensated heading
-#            tiltCompensatedHeading = 180 * math.atan2(magYcomp,magXcomp)/M_PI
+                roll = math.asin(accXnorm)  # Roll remains based on X
+                pitch = -math.asin(accYnorm / math.cos(roll))  # Pitch remains based on Y
             except ValueError:
-                print("Value Error")
-        #pitchValue = round(pitch, 1)
-        #print("PV: "+str(pitchValue))
-        #if(pitchValue != 90 and pitchValue != -90 and pitchValue != 180 and pitchValue != -180 and pitchValue !=0):
-        #    print("bitch"+str(pitchValue))
-        #else:
-        #    togglepattern4(pitchValue)
-            togglepattern4(roll)
-        #camera.annotate_text_size = 85
+                roll = prev_roll  # Keep last valid roll on error
+
+            # **Apply Low-Pass Filtering to Roll & Pitch**
+            roll_filtered = (LPF_ALPHA * roll) + ((1 - LPF_ALPHA) * prev_roll)
+            pitch_filtered = (LPF_ALPHA * pitch) + ((1 - LPF_ALPHA) * prev_pitch)
+
+            # **Maintain Rolling Average Buffer**
+            roll_buffer.append(roll_filtered)
+            roll_final = sum(roll_buffer) / len(roll_buffer)  # Rolling average
+
+            # Store previous values
+            prev_roll = roll_final
+            prev_pitch = pitch_filtered
+
+            togglepattern4(roll_final)
+
             try:
-#            if(shotcamvideo == "True" or shotcamvideo == "true"):
-                if(process.poll() == 0):
+                if process.poll() == 0:
                     busy = False
                 else:
                     busy = True
-            #else:
-            #   busy = False
             except:
                 pass
-            if(toggleText or toggleStability):
-                camera.annotate_text_size = 85
-                if(toggleText):
-                # Compute zoom factor as a multiple
-                    zoom_factor = 1 / zooms['zoom_wh']
 
-                # Round to 1 decimal place for readability
+            if toggleText or toggleStability:
+                camera.annotate_text_size = 85
+                if toggleText:
+                    zoom_factor = 1 / zooms['zoom_wh']
                     zoom_factor = int(round(zoom_factor, 0))
 
-                    if(busy): # or process.poll() is None):
-                        annotate_text = "X:"+str(xcenter)+"     "+"Zoom:"+str(zoom_factor)+"       Y:"+str(ycenter)+"\nBusy"
+                    if busy:
+                        annotate_text = f"X:{xcenter}     Zoom:{zoom_factor}       Y:{ycenter}\nBusy"
                     else:
-                        annotate_text = "X:"+str(xcenter)+"     "+"Zoom:"+str(zoom_factor)+"       Y:"+str(ycenter)+"\n"
+                        annotate_text = f"X:{xcenter}     Zoom:{zoom_factor}       Y:{ycenter}\n"
                 else:
-                    if(busy): #or process.poll() is None):
-                        annotate_text = "\nBusy"
-                    else:
-                        annotate_text = "\n"
-                if(toggleStability):
-                    annotate_text += "\n\n"
-                    annotate_text += stable+"\n"+stable
-                    if(toggleText):
+                    annotate_text = "\nBusy" if busy else "\n"
+
+                if toggleStability:
+                    annotate_text += "\n\n" + stable + "\n" + stable
+                    if toggleText:
                         annotate_text += "\n\n\n"
                 else:
                     annotate_text += "\n\n\n\n\n\n"
-                if(toggleText):
-                    annotate_text += "Pitch:"+str(pitch)[0:5]+"    "+"{:d}%".format(int(power_percent))+"    Roll:"+str(roll)[0:5]
+
+                if toggleText:
+                    annotate_text += f"Pitch:{pitch_filtered:.2f}    {int(power_percent)}%    Roll:{roll_final:.2f}"
 
                 camera.annotate_text = annotate_text
             else:
                 camera.annotate_text_size = 85
-                if(busy): #or process.poll() is None):
-                    camera.annotate_text = "\nBusy"
-                else:
-                    camera.annotate_text = ""
+                camera.annotate_text = "\nBusy" if busy else ""
         else:
             time.sleep(.25)
+
+
+
+
 
 def get_file_name_pic():  # new
     return datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S.png")
