@@ -431,21 +431,22 @@ def shotcam():
 
     # Properly formatted FFmpeg command
     shotcam_cmd = f"""
-        tail -c 25000000 {filename} > /dev/shm/temp.h264 && \
+        tail -c 20000000 {filename} > /dev/shm/temp.h264 && \
         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json /dev/shm/temp.h264 && \
         ffmpeg -y -fflags +genpts -i /dev/shm/temp.h264 -c:v copy -movflags +faststart /dev/shm/temp_fixed.mp4 && \
-        ffmpeg -y -sseof -10.5 -i /dev/shm/temp_fixed.mp4 -c:v copy /dev/shm/trimmed.mp4 && \
-        ffmpeg -i /dev/shm/trimmed.mp4 \
+        ffmpeg -i /dev/shm/temp_fixed.mp4 \
         -vf "drawbox=x={xcenter}:y=0:w=2:h=720:color={curcol}@0.8:t=fill, \
              drawbox=x=0:y={ycenter}:w=1280:h=2:color={curcol}@0.8:t=fill" \
         -c:v h264_v4l2m2m -b:v 1M -preset ultrafast -c:a copy "{shotcam_file}" && \
-        rm /dev/shm/temp.h264 /dev/shm/temp_fixed.mp4 /dev/shm/trimmed.mp4
+        cp /dev/shm/temp_fixed.mp4 {temp_file} && \
+        rm /dev/shm/temp.h264 /dev/shm/temp_fixed.mp4
     """
+#        ffmpeg -y -sseof -10.5 -i /dev/shm/temp_fixed.mp4 -c:v copy /dev/shm/trimmed.mp4 && \
 
 
     #).format(xcenter=xcenter, ycenter=ycenter, shotcam_file=shotcam_file, curcol=curcol)
     video_cmd = f"""
-        tail -c 25000000 {filename} > /dev/shm/temp.h264 && \
+        tail -c 20000000 {filename} > /dev/shm/temp.h264 && \
         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json /dev/shm/temp.h264 && \
         ffmpeg -y -fflags +genpts -i /dev/shm/temp.h264 -c:v copy -movflags +faststart /dev/shm/temp_fixed.mp4 && \
         ffmpeg -y -i /dev/shm/temp_fixed.mp4 -c:v copy {temp_file} && \
@@ -1788,7 +1789,8 @@ with picamera.PiCamera() as camera:
                     print("start")
                     print("prevhold: "+str(prevhold))
                     print("busy: "+str(busy))
-                    os.system("/usr/bin/raspi2png -p /mnt/usb_share/"+get_file_name_pic())
+                    subprocess.Popen(["/usr/bin/raspi2png", "-p", "/mnt/usb_share/" + get_file_name_pic()])
+#                    os.system("/usr/bin/raspi2png -p /mnt/usb_share/"+get_file_name_pic())
                 if event.code == yBtn:
                     print("Y")
                     togglepattern(curpat2+1)
