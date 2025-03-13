@@ -432,10 +432,10 @@ def shotcam():
 
     # Properly formatted FFmpeg command
     shotcam_cmd = f"""
-        tail -c 20000000 {filename} > /dev/shm/temp.h264 && \
+        tail -c 25000000 {filename} > /dev/shm/temp.h264 && \
         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json /dev/shm/temp.h264 && \
         ffmpeg -y -fflags +genpts -i /dev/shm/temp.h264 -c:v copy -movflags +faststart /dev/shm/temp_fixed.mp4 && \
-        ffmpeg -i /dev/shm/temp_fixed.mp4 \
+        ffmpeg -sseof -10 -i /dev/shm/temp_fixed.mp4 \
         -vf "drawbox=x={xcenter}:y=0:w=2:h=720:color={curcol}@0.8:t=fill, \
              drawbox=x=0:y={ycenter}:w=1280:h=2:color={curcol}@0.8:t=fill" \
         -c:v h264_v4l2m2m -b:v 1M -preset ultrafast -c:a copy "{shotcam_file}" && \
@@ -447,7 +447,7 @@ def shotcam():
 
     #).format(xcenter=xcenter, ycenter=ycenter, shotcam_file=shotcam_file, curcol=curcol)
     video_cmd = f"""
-        tail -c 20000000 {filename} > /dev/shm/temp.h264 && \
+        tail -c 25000000 {filename} > /dev/shm/temp.h264 && \
         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json /dev/shm/temp.h264 && \
         ffmpeg -y -fflags +genpts -i /dev/shm/temp.h264 -c:v copy -movflags +faststart /dev/shm/temp_fixed.mp4 && \
         ffmpeg -y -i /dev/shm/temp_fixed.mp4 -c:v copy {temp_file} && \
@@ -1864,17 +1864,29 @@ with picamera.PiCamera() as camera:
 #                    prevhold = event.code
                     #if(shotcamvideo != "True" and shotcamvideo != "true"):
                     #    busy = False
-                if event.code == lTrig and zoomcount > 0:
+                if event.code == lTrig and prevhold != lTrig: #zoomcount > 0:
                     print("hleft bumper")
-                    zoom_out()
+                    camera.annotate_text = "\nShot Cam"
+                    prevhold = event.code
+                    busy = True
+                    shotcam()
+#                    zoom_out()
                     #togglepattern3()
-                if event.code == rTrig and zoomcount < 15:
+                if event.code == rTrig and prevhold != rTrig: #zoomcount < 15:
                     print("hright bumper")
-                    zoom_in()
+                    camera.annotate_text = "\nShot Cam"
+                    prevhold = event.code
+                    busy = True
+                    shotcam()
+#                    zoom_in()
                     #togglepattern3()
 #                prevhold = event.code
                 busy = False
         if(prevhold == start):
+            prevhold = None
+        if(prevhold == rTrig):
+            prevhold = None
+        if(prevhold == lTrig):
             prevhold = None
 
     except (KeyboardInterrupt, SystemExit): #when you press ctrl+c
