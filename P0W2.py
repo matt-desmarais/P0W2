@@ -510,7 +510,10 @@ prev_roll = 0.0
 prev_pitch = 0.0
 
 
-
+def get_cpu_temp_sys():
+    with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
+        temp = int(f.read().strip()) / 1000.0  # Convert millidegrees to degrees
+    return temp
 
 
 def annotate_thread():
@@ -522,6 +525,8 @@ def annotate_thread():
             bus_voltage = read_voltage()
             power_percent = (bus_voltage - V_MIN) / (V_MAX - V_MIN) * 100
             power_percent = max(0, min(100, power_percent))  # Clamp between 0-100%
+
+            temp = get_cpu_temp_sys()
 
             ACCx = IMU.readACCx()
             ACCy = IMU.readACCy()
@@ -630,7 +635,7 @@ def annotate_thread():
                     annotate_text += "\n\n\n\n\n\n"
 
                 if toggleText:
-                    annotate_text += f"Pitch:{pitch:.2f}    {int(power_percent)}%    Roll:{roll_final:.2f}"
+                    annotate_text += f"Pitch:{pitch:.2f}  {int(power_percent)}% {int(temp)}C  Roll:{roll_final:.2f}"
 
                 camera.annotate_text = annotate_text
             else:
